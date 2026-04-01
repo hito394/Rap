@@ -1,12 +1,58 @@
 import Foundation
 
+struct SlangBreakdown: Codable, Identifiable {
+    var id = UUID()
+    let word: String
+    let meaning: String
+    let origin: String?
+
+    enum CodingKeys: String, CodingKey {
+        case word, meaning, origin
+    }
+}
+
 struct KeyBar: Codable, Identifiable {
     var id = UUID()
     let bar: String
     let explanation: String
+    let slangBreakdown: [SlangBreakdown]?
+    let subtext: String?
 
     enum CodingKeys: String, CodingKey {
         case bar, explanation
+        case slangBreakdown = "slang_breakdown"
+        case subtext
+    }
+}
+
+struct SampleInfo: Codable, Identifiable {
+    var id = UUID()
+    let originalArtist: String
+    let originalTrack: String
+    let originalYear: String?
+    let sampledElement: String
+    let howUsed: String
+    let clearanceNote: String?
+
+    enum CodingKeys: String, CodingKey {
+        case originalArtist = "original_artist"
+        case originalTrack = "original_track"
+        case originalYear = "original_year"
+        case sampledElement = "sampled_element"
+        case howUsed = "how_used"
+        case clearanceNote = "clearance_note"
+    }
+}
+
+struct TrackSlangEntry: Codable, Identifiable {
+    var id = UUID()
+    let word: String
+    let meaning: String
+    let origin: String?
+    let region: String?
+
+    enum CodingKeys: String, CodingKey {
+        case word, meaning, origin, region
     }
 }
 
@@ -15,6 +61,8 @@ struct TrackDecode: Codable {
     let eraContext: String
     let rhymeTechniques: [String]
     let keyBars: [KeyBar]
+    let samples: [SampleInfo]
+    let slangGlossary: [TrackSlangEntry]
     let influences: [String]
     let legacy: String
 
@@ -23,6 +71,8 @@ struct TrackDecode: Codable {
         case eraContext = "era_context"
         case rhymeTechniques = "rhyme_techniques"
         case keyBars = "key_bars"
+        case samples
+        case slangGlossary = "slang_glossary"
         case influences
         case legacy
     }
@@ -33,7 +83,6 @@ struct TrackDecode: Codable {
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
         guard let data = cleaned.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(TrackDecode.self, from: data)
     }

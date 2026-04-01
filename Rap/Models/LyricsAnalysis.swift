@@ -5,9 +5,48 @@ struct RhymePair: Codable, Identifiable {
     let word1: String
     let word2: String
     let type: String
+    let explanation: String?
 
     enum CodingKeys: String, CodingKey {
-        case word1, word2, type
+        case word1, word2, type, explanation
+    }
+}
+
+struct SlangEntry: Codable, Identifiable {
+    var id = UUID()
+    let word: String
+    let reading: String?
+    let meaning: String
+    let origin: String?
+    let usageNote: String?
+    let region: String?
+
+    enum CodingKeys: String, CodingKey {
+        case word, reading, meaning, origin
+        case usageNote = "usage_note"
+        case region
+    }
+}
+
+struct DoubleEntendre: Codable, Identifiable {
+    var id = UUID()
+    let line: String
+    let surface: String
+    let real: String
+    let technique: String?
+
+    enum CodingKeys: String, CodingKey {
+        case line, surface, real, technique
+    }
+}
+
+struct CulturalReference: Codable, Identifiable {
+    var id = UUID()
+    let reference: String
+    let explanation: String
+
+    enum CodingKeys: String, CodingKey {
+        case reference, explanation
     }
 }
 
@@ -16,6 +55,9 @@ struct LyricsAnalysis: Codable {
     let rhymePairs: [RhymePair]
     let flowScore: Int
     let flowComment: String
+    let slangGlossary: [SlangEntry]
+    let doubleEntendres: [DoubleEntendre]
+    let culturalReferences: [CulturalReference]
     let highlights: String
     let tips: String
 
@@ -24,6 +66,9 @@ struct LyricsAnalysis: Codable {
         case rhymePairs = "rhyme_pairs"
         case flowScore = "flow_score"
         case flowComment = "flow_comment"
+        case slangGlossary = "slang_glossary"
+        case doubleEntendres = "double_entendres"
+        case culturalReferences = "cultural_references"
         case highlights
         case tips
     }
@@ -34,7 +79,6 @@ struct LyricsAnalysis: Codable {
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
         guard let data = cleaned.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(LyricsAnalysis.self, from: data)
     }

@@ -44,8 +44,9 @@ struct LyricsAnalyzeView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     inputSection
                     if vm.isLoading { loadingSection }
-                    if let result = vm.result { resultSection(result) }
-                    else if let raw = vm.rawResult, vm.result == nil && !vm.isLoading {
+                    if let result = vm.result {
+                        resultSection(result)
+                    } else if let raw = vm.rawResult, vm.result == nil && !vm.isLoading {
                         rawTextSection(raw)
                     }
                 }
@@ -94,9 +95,11 @@ struct LyricsAnalyzeView: View {
                     .foregroundColor(vm.charCount > vm.maxChars - 50 ? Color.gold : .gray)
                 Spacer()
                 if !vm.lyricsText.isEmpty {
-                    Button("クリア") { vm.lyricsText = ""; vm.result = nil; vm.rawResult = nil }
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
+                    Button("クリア") {
+                        vm.lyricsText = ""; vm.result = nil; vm.rawResult = nil
+                    }
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
                 }
             }
 
@@ -162,6 +165,21 @@ struct LyricsAnalyzeView: View {
                 .cardStyle()
             }
 
+            // Slang Glossary
+            if !r.slangGlossary.isEmpty {
+                SlangGlossarySection(entries: r.slangGlossary)
+            }
+
+            // Double Entendres
+            if !r.doubleEntendres.isEmpty {
+                DoubleEntendresSection(items: r.doubleEntendres)
+            }
+
+            // Cultural References
+            if !r.culturalReferences.isEmpty {
+                CulturalRefsSection(refs: r.culturalReferences)
+            }
+
             // Highlights
             InfoCard(title: "Highlights", body: r.highlights, icon: "sparkles")
 
@@ -170,7 +188,6 @@ struct LyricsAnalyzeView: View {
         }
     }
 
-    // MARK: Raw text fallback
     private func rawTextSection(_ raw: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Result")
@@ -183,23 +200,239 @@ struct LyricsAnalyzeView: View {
     }
 }
 
-// MARK: - Sub-components
+// MARK: - Slang Glossary Section
+struct SlangGlossarySection: View {
+    let entries: [SlangEntry]
+    @State private var expanded: Set<UUID> = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "text.bubble.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.gold)
+                SectionHeader(title: "Slang / 隠語")
+                Spacer()
+                Text("\(entries.count)語")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.gray)
+            }
+            .padding(.bottom, 10)
+
+            ForEach(entries) { entry in
+                SlangRow(entry: entry, isExpanded: expanded.contains(entry.id)) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if expanded.contains(entry.id) {
+                            expanded.remove(entry.id)
+                        } else {
+                            expanded.insert(entry.id)
+                        }
+                    }
+                }
+                if entry.id != entries.last?.id {
+                    Divider().background(Color.divider).padding(.vertical, 4)
+                }
+            }
+        }
+        .padding(14)
+        .cardStyle()
+    }
+}
+
+struct SlangRow: View {
+    let entry: SlangEntry
+    let isExpanded: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: onTap) {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(entry.word)
+                                .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                                .foregroundColor(Color.gold)
+                            if let reading = entry.reading {
+                                Text(reading)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        Text(entry.meaning)
+                            .font(.system(.caption))
+                            .foregroundColor(.white.opacity(0.8))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                        .padding(.top, 2)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let origin = entry.origin {
+                        LabeledText(label: "語源", text: origin)
+                    }
+                    if let note = entry.usageNote {
+                        LabeledText(label: "用法", text: note)
+                    }
+                    if let region = entry.region {
+                        LabeledText(label: "地域", text: region)
+                    }
+                }
+                .padding(.leading, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+}
+
+// MARK: - Double Entendres Section
+struct DoubleEntendresSection: View {
+    let items: [DoubleEntendre]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.gold)
+                SectionHeader(title: "Double Meaning / 裏の意味")
+            }
+            ForEach(items) { item in
+                DoubleEntendreCard(item: item)
+            }
+        }
+        .padding(14)
+        .cardStyle()
+    }
+}
+
+struct DoubleEntendreCard: View {
+    let item: DoubleEntendre
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // The line
+            Text("\"" + item.line + "\"")
+                .font(.system(.caption, design: .monospaced, weight: .medium))
+                .foregroundColor(Color.gold.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+                .italic()
+
+            HStack(alignment: .top, spacing: 0) {
+                // Surface meaning
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("表面")
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .tracking(0.8)
+                    Text(item.surface)
+                        .font(.system(.caption))
+                        .foregroundColor(.white.opacity(0.6))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Rectangle()
+                    .fill(Color.gold.opacity(0.3))
+                    .frame(width: 1)
+                    .padding(.horizontal, 10)
+
+                // Real meaning
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("真意")
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundColor(Color.gold)
+                        .tracking(0.8)
+                    Text(item.real)
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let technique = item.technique {
+                GoldTag(text: technique)
+            }
+        }
+        .padding(10)
+        .background(Color.gold.opacity(0.04))
+        .cornerRadius(4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gold.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+}
+
+// MARK: - Cultural References Section
+struct CulturalRefsSection: View {
+    let refs: [CulturalReference]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "building.columns.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.gold)
+                SectionHeader(title: "Cultural References")
+            }
+            ForEach(refs) { ref in
+                HStack(alignment: .top, spacing: 10) {
+                    Rectangle()
+                        .fill(Color.gold)
+                        .frame(width: 2)
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(ref.reference)
+                            .font(.system(.caption, weight: .bold))
+                            .foregroundColor(.white)
+                        Text(ref.explanation)
+                            .font(.system(.caption))
+                            .foregroundColor(.white.opacity(0.65))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .lineSpacing(3)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .cardStyle()
+    }
+}
+
+// MARK: - Shared sub-components
 
 struct RhymePairRow: View {
     let pair: RhymePair
     var body: some View {
-        HStack(spacing: 6) {
-            Text(pair.word1)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                .foregroundColor(.white)
-            Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 10))
-                .foregroundColor(Color.gold)
-            Text(pair.word2)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                .foregroundColor(.white)
-            Spacer()
-            GoldTag(text: pair.type)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(pair.word1)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .foregroundColor(.white)
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color.gold)
+                Text(pair.word2)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .foregroundColor(.white)
+                Spacer()
+                GoldTag(text: pair.type)
+            }
+            if let exp = pair.explanation {
+                Text(exp)
+                    .font(.system(.caption))
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.vertical, 4)
     }
@@ -229,7 +462,27 @@ struct InfoCard: View {
     }
 }
 
-// MARK: - FlowLayout (wrapping HStack)
+struct LabeledText: View {
+    let label: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundColor(Color.gold.opacity(0.7))
+                .frame(width: 32, alignment: .leading)
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(.caption))
+                .foregroundColor(.white.opacity(0.6))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(2)
+        }
+    }
+}
+
+// MARK: - FlowLayout
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 
