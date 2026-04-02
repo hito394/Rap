@@ -1,21 +1,85 @@
 import SwiftUI
 import SwiftData
 
+struct BeginnerGuideItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let emoji: String
+    let question: String  // Pre-seeded question for FreeSearch
+}
+
+extension BeginnerGuideItem {
+    static let list: [BeginnerGuideItem] = [
+        BeginnerGuideItem(
+            title: "ヒップホップって何？",
+            subtitle: "4つの要素から始まった文化",
+            emoji: "🎤",
+            question: "ヒップホップとは何ですか？歴史や文化的背景を、全く知らない初心者にもわかりやすく教えてください。"
+        ),
+        BeginnerGuideItem(
+            title: "MCバトルとは？",
+            subtitle: "言葉でぶつかり合う戦い",
+            emoji: "⚔️",
+            question: "MCバトルとは何ですか？どんなルールで、どうやって勝ち負けが決まるのか、初心者向けに説明してください。"
+        ),
+        BeginnerGuideItem(
+            title: "フリースタイルって？",
+            subtitle: "即興でラップする技術",
+            emoji: "🔥",
+            question: "フリースタイルラップとは何ですか？なぜ難しいのか、どう練習するのか教えてください。"
+        ),
+        BeginnerGuideItem(
+            title: "ライムって何がすごいの？",
+            subtitle: "ただの韻踏みじゃない",
+            emoji: "📖",
+            question: "ラップのライム（韻）とは何ですか？どんな種類があって、なぜ難しいのか、具体例を交えて教えてください。"
+        ),
+        BeginnerGuideItem(
+            title: "サンプリングって？",
+            subtitle: "既存の音楽を使う技術",
+            emoji: "🎵",
+            question: "ヒップホップのサンプリングとは何ですか？どうやって使うのか、有名な例を挙げて初心者に教えてください。"
+        ),
+        BeginnerGuideItem(
+            title: "日本語ラップの歴史",
+            subtitle: "日本のシーンを知る",
+            emoji: "🇯🇵",
+            question: "日本語ラップの歴史を教えてください。どうやって始まって、どんなアーティストが有名なのか、初心者向けに解説してください。"
+        ),
+    ]
+}
+
 struct DiscoverView: View {
     @Query(sort: \HistoryItem.createdAt, order: .reverse) private var history: [HistoryItem]
     @Binding var selectedTrack: PickupTrack?
     @Binding var navigateToTrack: Bool
+    @Binding var beginnerQuestion: String?
+    @Binding var navigateToSearch: Bool
 
-    private var recentHistory: [HistoryItem] {
-        Array(history.prefix(6))
-    }
+    private var recentHistory: [HistoryItem] { Array(history.prefix(5)) }
 
     var body: some View {
         NavigationView {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 28) {
-                    // Header
-                    headerSection
+
+                    // Beginner Guide
+                    SectionGroup(title: "ヒップホップ入門", icon: "graduationcap.fill") {
+                        VStack(spacing: 0) {
+                            ForEach(BeginnerGuideItem.list) { item in
+                                BeginnerGuideRow(item: item) {
+                                    beginnerQuestion = item.question
+                                    navigateToSearch = true
+                                }
+                                if item.id != BeginnerGuideItem.list.last?.id {
+                                    Divider().background(Color.divider).padding(.leading, 56)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .cardStyle()
+                    }
 
                     // Pickup Tracks
                     SectionGroup(title: "Pickup Tracks", icon: "flame.fill") {
@@ -38,7 +102,8 @@ struct DiscoverView: View {
                             HStack(spacing: 10) {
                                 ForEach(EraTile.list) { era in
                                     EraTileView(era: era) {
-                                        // TODO: filter by era
+                                        beginnerQuestion = "\(era.label)（\(era.years)）の時代のヒップホップについて、代表的なアーティスト・楽曲・特徴を初心者にわかりやすく教えてください。"
+                                        navigateToSearch = true
                                     }
                                 }
                             }
@@ -53,9 +118,7 @@ struct DiscoverView: View {
                                 ForEach(recentHistory) { item in
                                     HistoryRow(item: item)
                                     if item.id != recentHistory.last?.id {
-                                        Divider()
-                                            .background(Color.divider)
-                                            .padding(.leading, 56)
+                                        Divider().background(Color.divider).padding(.leading, 56)
                                     }
                                 }
                             }
@@ -75,15 +138,39 @@ struct DiscoverView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
+}
 
-    // MARK: Header
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("今日も深掘りしよう")
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(.gray)
+// MARK: - Beginner Guide Row
+struct BeginnerGuideRow: View {
+    let item: BeginnerGuideItem
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.gold.opacity(0.1))
+                        .frame(width: 40, height: 40)
+                    Text(item.emoji)
+                        .font(.system(size: 18))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text(item.subtitle)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray.opacity(0.4))
+            }
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 20)
+        .buttonStyle(.plain)
     }
 }
 
@@ -130,26 +217,21 @@ struct StreamingTrackCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                // Album art
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(LinearGradient(colors: gradientColors,
                                              startPoint: .topLeading,
                                              endPoint: .bottomTrailing))
                         .frame(width: 130, height: 130)
-                    Text(track.emoji)
-                        .font(.system(size: 44))
+                    Text(track.emoji).font(.system(size: 44))
                 }
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                        .foregroundColor(.white).lineLimit(1)
                     Text(track.artist)
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
+                        .foregroundColor(.gray).lineLimit(1)
                 }
                 .frame(width: 130, alignment: .leading)
             }
@@ -169,26 +251,14 @@ struct EraTileView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(hex: era.color))
                     .frame(width: 120, height: 70)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.06), lineWidth: 1))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(era.label)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(era.years)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .padding(8)
-
+                    Text(era.label).font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                    Text(era.years).font(.system(size: 9, design: .monospaced)).foregroundColor(.white.opacity(0.5))
+                }.padding(8)
                 HStack {
                     Spacer()
-                    Image(systemName: era.icon)
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.12))
-                        .padding(10)
+                    Image(systemName: era.icon).font(.system(size: 18)).foregroundColor(.white.opacity(0.12)).padding(10)
                 }
             }
         }
@@ -211,26 +281,18 @@ struct HistoryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle()
-                    .fill(Color.gold.opacity(0.1))
-                    .frame(width: 36, height: 36)
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.gold)
+                Circle().fill(Color.gold.opacity(0.1)).frame(width: 36, height: 36)
+                Image(systemName: icon).font(.system(size: 14)).foregroundColor(Color.gold)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.query)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                    .foregroundColor(.white).lineLimit(1)
                 Text(item.typeLabel + " · " + item.createdAt.formatted(.relative(presentation: .named)))
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.gray)
+                    .font(.system(.caption, design: .monospaced)).foregroundColor(.gray)
             }
             Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11))
-                .foregroundColor(.gray.opacity(0.4))
+            Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.gray.opacity(0.4))
         }
         .padding(.vertical, 10)
     }

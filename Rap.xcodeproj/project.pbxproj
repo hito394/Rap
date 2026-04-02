@@ -24,6 +24,11 @@
 		AA100000F /* TappableLyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100000F /* TappableLyricsView.swift */; };
 		AA1000010 /* SlangSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000010 /* SlangSheet.swift */; };
 		AA1000011 /* HeroHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000011 /* HeroHeader.swift */; };
+		AA1000012 /* YouTubeVideo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000012 /* YouTubeVideo.swift */; };
+		AA1000013 /* YouTubeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000013 /* YouTubeService.swift */; };
+		AA1000014 /* YouTubePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000014 /* YouTubePlayerView.swift */; };
+		AA1000015 /* VideoSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000015 /* VideoSearchView.swift */; };
+		AA1000016 /* VideoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000016 /* VideoDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +49,11 @@
 		AB100000F /* TappableLyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TappableLyricsView.swift; sourceTree = "<group>"; };
 		AB1000010 /* SlangSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlangSheet.swift; sourceTree = "<group>"; };
 		AB1000011 /* HeroHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroHeader.swift; sourceTree = "<group>"; };
+		AB1000012 /* YouTubeVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeVideo.swift; sourceTree = "<group>"; };
+		AB1000013 /* YouTubeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeService.swift; sourceTree = "<group>"; };
+		AB1000014 /* YouTubePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerView.swift; sourceTree = "<group>"; };
+		AB1000015 /* VideoSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSearchView.swift; sourceTree = "<group>"; };
+		AB1000016 /* VideoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDetailView.swift; sourceTree = "<group>"; };
 		AB100000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB100000F /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -85,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				AB1000003 /* AnthropicService.swift */,
+				AB1000013 /* YouTubeService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -95,6 +106,7 @@
 				AB1000004 /* HistoryItem.swift */,
 				AB1000005 /* LyricsAnalysis.swift */,
 				AB1000006 /* TrackDecode.swift */,
+				AB1000012 /* YouTubeVideo.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -103,6 +115,8 @@
 			isa = PBXGroup;
 			children = (
 				AB100000E /* DiscoverView.swift */,
+				AB1000015 /* VideoSearchView.swift */,
+				AB1000016 /* VideoDetailView.swift */,
 				AB1000007 /* LyricsAnalyzeView.swift */,
 				AB1000008 /* TrackDecodeView.swift */,
 				AB1000009 /* FreeSearchView.swift */,
@@ -120,6 +134,7 @@
 				AB100000F /* TappableLyricsView.swift */,
 				AB1000010 /* SlangSheet.swift */,
 				AB1000011 /* HeroHeader.swift */,
+				AB1000014 /* YouTubePlayerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -218,6 +233,11 @@
 				AA100000F /* TappableLyricsView.swift in Sources */,
 				AA1000010 /* SlangSheet.swift in Sources */,
 				AA1000011 /* HeroHeader.swift in Sources */,
+				AA1000012 /* YouTubeVideo.swift in Sources */,
+				AA1000013 /* YouTubeService.swift in Sources */,
+				AA1000014 /* YouTubePlayerView.swift in Sources */,
+				AA1000015 /* VideoSearchView.swift in Sources */,
+				AA1000016 /* VideoDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,6 +387,7 @@
 				TARGETED_DEVICE_FAMILY = 1;
 				/* Set your API key via xcconfig or environment variable */
 				ANTHROPIC_API_KEY = "";
+				YOUTUBE_API_KEY = "";
 			};
 			name = Debug;
 		};
@@ -397,6 +418,7 @@
 				TARGETED_DEVICE_FAMILY = 1;
 				/* Set your API key via xcconfig or environment variable */
 				ANTHROPIC_API_KEY = "";
+				YOUTUBE_API_KEY = "";
 			};
 			name = Release;
 		};

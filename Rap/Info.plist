@@ -44,8 +44,11 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
-	<!-- API Key: Set this in Build Settings as ANTHROPIC_API_KEY or use Keychain -->
+	<!-- API Keys: Set in Xcode Build Settings or xcconfig -->
 	<key>ANTHROPIC_API_KEY</key>
 	<string>$(ANTHROPIC_API_KEY)</string>
+	<!-- YouTube Data API v3 key from Google Cloud Console -->
+	<key>YOUTUBE_API_KEY</key>
+	<string>$(YOUTUBE_API_KEY)</string>
 </dict>
 </plist>

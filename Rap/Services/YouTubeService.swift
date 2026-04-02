@@ -1,0 +1,65 @@
+import Foundation
+
+enum YouTubeError: LocalizedError {
+    case invalidAPIKey
+    case networkError(Error)
+    case httpError(Int)
+    case noResults
+    case decodingError
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidAPIKey: return "YouTube APIキーが設定されていません"
+        case .networkError: return "接続を確認してください"
+        case .httpError(let code): return "YouTube APIエラー (HTTP \(code))"
+        case .noResults: return "動画が見つかりませんでした"
+        case .decodingError: return "データの解析に失敗しました"
+        }
+    }
+}
+
+struct YouTubeService {
+    static let searchEndpoint = "https://www.googleapis.com/youtube/v3/search"
+
+    static var apiKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "YOUTUBE_API_KEY") as? String ?? ""
+    }
+
+    static func search(query: String, maxResults: Int = 15) async throws -> [YouTubeVideo] {
+        guard !apiKey.isEmpty else { throw YouTubeError.invalidAPIKey }
+
+        var components = URLComponents(string: searchEndpoint)!
+        components.queryItems = [
+            URLQueryItem(name: "part", value: "snippet"),
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "type", value: "video"),
+            URLQueryItem(name: "maxResults", value: "\(maxResults)"),
+            URLQueryItem(name: "key", value: apiKey),
+            URLQueryItem(name: "relevanceLanguage", value: "ja"),
+            URLQueryItem(name: "safeSearch", value: "none"),
+        ]
+
+        guard let url = components.url else { throw YouTubeError.decodingError }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(from: url)
+        } catch {
+            throw YouTubeError.networkError(error)
+        }
+
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw YouTubeError.httpError(httpResponse.statusCode)
+        }
+
+        guard let result = try? JSONDecoder().decode(YouTubeSearchResponse.self, from: data) else {
+            throw YouTubeError.decodingError
+        }
+
+        let videos = result.items.compactMap { $0.toVideo() }
+        guard !videos.isEmpty else { throw YouTubeError.noResults }
+        return videos
+    }
+}

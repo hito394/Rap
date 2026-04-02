@@ -144,6 +144,77 @@ struct AnthropicService {
 知ったかぶらず、不確かな情報には「諸説ある」「確認が取れていないが」と明示してください。
 """
 
+    // MARK: - Video explain system prompts (per expertise level)
+
+    static func videoSystemPrompt(level: ExpertiseLevel) -> String {
+        let levelInstruction: String
+        switch level {
+        case .beginner:
+            levelInstruction = """
+【対象読者: ヒップホップを全く知らない完全な初心者】
+- 専門用語（MCバトル、フリースタイル、サイファー、フロウ、ライム、バース等）を使う際は\
+必ずカッコ内で一言説明を加えること
+- 「なぜこれが凄いのか」「なぜ盛り上がっているのか」を感情的な文脈で説明すること
+- 例え話や身近な比喩を積極的に使うこと
+- 「これはちょうど〜みたいなものです」という解説を心がけること
+- 業界の常識的なことも「実は〜なんです」という発見の形で伝えること
+"""
+        case .intermediate:
+            levelInstruction = """
+【対象読者: ヒップホップの基礎は知っている中級者】
+- 基本用語の説明は不要。技術的な内容に踏み込む
+- ライム技法、フロウのパターン、バトルのセオリーを具体的に解説すること
+- 歴史的文脈・シーンの立ち位置を説明すること
+"""
+        case .expert:
+            levelInstruction = """
+【対象読者: ヒップホップを深く知る上級者・マニア】
+- 高度な技術論（マルチシラブル、内部韻、ポリリズム、反転フロウ等）を使って解説
+- 他の伝説的バトル・楽曲との比較分析
+- 業界内での評価・批評家視点での分析
+- リリシストとしての語彙・レトリックの水準評価
+"""
+        }
+
+        return """
+あなたはヒップホップ映像コンテンツの解説者です。
+動画のタイトル・チャンネル・説明文を読んで、その動画の内容を解説してください。
+
+\(levelInstruction)
+
+解説には以下を含めること:
+1. この動画が何なのか（MCバトル/フリースタイル/ライブ/ドキュメンタリー等）
+2. 登場するアーティスト・参加者の紹介と背景
+3. この動画の見どころ・なぜ重要なのか
+4. 観ていて注目すべきポイント（具体的に）
+5. この動画がヒップホップ史でどんな意味を持つか
+
+日本語で、読みやすい文章で書いてください。マークダウンは使わず自然な文体で。
+不確かな情報には「おそらく」「と言われている」と添えてください。
+"""
+    }
+
+    static func videoChatSystemPrompt(videoTitle: String, level: ExpertiseLevel) -> String {
+        let levelNote: String
+        switch level {
+        case .beginner:
+            levelNote = "相手はヒップホップ初心者です。専門用語には必ず説明を加え、分かりやすく答えてください。"
+        case .intermediate:
+            levelNote = "相手はヒップホップの基礎を知っています。技術的な内容も交えて答えてください。"
+        case .expert:
+            levelNote = "相手はヒップホップのマニアです。深い技術論・業界知識で答えてください。"
+        }
+
+        return """
+あなたはヒップホップの専門家です。
+今、ユーザーは「\(videoTitle)」という動画を観ながら質問しています。
+\(levelNote)
+
+ヒップホップの歴史・文化・技術・スラング・バトル・ビーフ・サンプリングなど何でも答えてください。
+日本語で、カジュアルかつ正確に。マークダウンは使わず自然な文体で。
+"""
+    }
+
     // MARK: - API Call
 
     static func call(system: String, messages: [[String: Any]]) async throws -> String {
@@ -207,5 +278,31 @@ struct AnthropicService {
 
     static func freeSearch(conversationHistory: [[String: Any]]) async throws -> String {
         return try await call(system: freeSystemPrompt, messages: conversationHistory)
+    }
+
+    static func explainVideo(
+        title: String,
+        channel: String,
+        description: String,
+        level: ExpertiseLevel
+    ) async throws -> String {
+        let userMessage = """
+動画タイトル: \(title)
+チャンネル: \(channel)
+説明: \(description.prefix(400))
+"""
+        let messages: [[String: Any]] = [["role": "user", "content": userMessage]]
+        return try await call(system: videoSystemPrompt(level: level), messages: messages)
+    }
+
+    static func videoChat(
+        conversationHistory: [[String: Any]],
+        videoTitle: String,
+        level: ExpertiseLevel
+    ) async throws -> String {
+        return try await call(
+            system: videoChatSystemPrompt(videoTitle: videoTitle, level: level),
+            messages: conversationHistory
+        )
     }
 }

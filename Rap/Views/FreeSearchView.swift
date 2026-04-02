@@ -82,6 +82,9 @@ struct FreeSearchView: View {
     @State private var vm = FreeSearchViewModel()
     @Environment(\.modelContext) private var context
     @FocusState private var inputFocused: Bool
+
+    // Pre-seeded question from DiscoverView beginner guide
+    var preseededQuestion: String? = nil
     private let scrollID = "bottom"
 
     var body: some View {
@@ -129,6 +132,12 @@ struct FreeSearchView: View {
             }
         }
         .toast(message: $vm.toastMessage)
+        .onAppear {
+            if let q = preseededQuestion, vm.messages.isEmpty {
+                vm.inputText = q
+                Task { await vm.send { context.insert($0) } }
+            }
+        }
     }
 
     // MARK: Empty state with suggestions
