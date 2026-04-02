@@ -1,5 +1,60 @@
 import Foundation
 
+// MARK: - Unified slang definition (used across all views)
+struct SlangDefinition: Identifiable {
+    let id = UUID()
+    let word: String
+    let reading: String?
+    let meaning: String
+    let origin: String?
+    let usageNote: String?
+    let region: String?
+}
+
+extension SlangEntry {
+    func asDefinition() -> SlangDefinition {
+        SlangDefinition(word: word, reading: reading, meaning: meaning,
+                        origin: origin, usageNote: usageNote, region: region)
+    }
+}
+
+extension TrackSlangEntry {
+    func asDefinition() -> SlangDefinition {
+        SlangDefinition(word: word, reading: nil, meaning: meaning,
+                        origin: origin, usageNote: nil, region: region)
+    }
+}
+
+extension SlangBreakdown {
+    func asDefinition() -> SlangDefinition {
+        SlangDefinition(word: word, reading: nil, meaning: meaning,
+                        origin: origin, usageNote: nil, region: nil)
+    }
+}
+
+// MARK: - Era tiles
+struct EraTile: Identifiable {
+    let id = UUID()
+    let label: String
+    let years: String
+    let color: String
+    let icon: String
+}
+
+extension EraTile {
+    static let list: [EraTile] = [
+        EraTile(label: "Golden Age", years: "1986–1994", color: "#8B6914", icon: "crown.fill"),
+        EraTile(label: "East vs West", years: "1992–1997", color: "#1a3a5c", icon: "bolt.fill"),
+        EraTile(label: "Bling Era", years: "1997–2006", color: "#4a2060", icon: "diamond.fill"),
+        EraTile(label: "Ringtone Rap", years: "2006–2012", color: "#1a4a2a", icon: "phone.fill"),
+        EraTile(label: "Trap Era", years: "2012–2018", color: "#3a1a1a", icon: "waveform"),
+        EraTile(label: "SoundCloud", years: "2015–2019", color: "#1a2a4a", icon: "cloud.fill"),
+        EraTile(label: "Drill Wave", years: "2018–Now", color: "#0d1a0d", icon: "music.note"),
+    ]
+}
+
+// MARK: - SlangBreakdown
+
 struct SlangBreakdown: Codable, Identifiable {
     var id = UUID()
     let word: String

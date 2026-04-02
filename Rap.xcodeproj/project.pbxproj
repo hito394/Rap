@@ -20,6 +20,10 @@
 		AA100000B /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100000B /* ToastView.swift */; };
 		AA100000C /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100000C /* DesignSystem.swift */; };
 		AA100000D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB100000D /* Assets.xcassets */; };
+		AA100000E /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100000E /* DiscoverView.swift */; };
+		AA100000F /* TappableLyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100000F /* TappableLyricsView.swift */; };
+		AA1000010 /* SlangSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000010 /* SlangSheet.swift */; };
+		AA1000011 /* HeroHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000011 /* HeroHeader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +40,10 @@
 		AB100000B /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		AB100000C /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		AB100000D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB100000E /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
+		AB100000F /* TappableLyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TappableLyricsView.swift; sourceTree = "<group>"; };
+		AB1000010 /* SlangSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlangSheet.swift; sourceTree = "<group>"; };
+		AB1000011 /* HeroHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroHeader.swift; sourceTree = "<group>"; };
 		AB100000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB100000F /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -94,6 +102,7 @@
 		AD1000005 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				AB100000E /* DiscoverView.swift */,
 				AB1000007 /* LyricsAnalyzeView.swift */,
 				AB1000008 /* TrackDecodeView.swift */,
 				AB1000009 /* FreeSearchView.swift */,
@@ -108,6 +117,9 @@
 				AB100000A /* LoadingView.swift */,
 				AB100000B /* ToastView.swift */,
 				AB100000C /* DesignSystem.swift */,
+				AB100000F /* TappableLyricsView.swift */,
+				AB1000010 /* SlangSheet.swift */,
+				AB1000011 /* HeroHeader.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -202,6 +214,10 @@
 				AA100000A /* LoadingView.swift in Sources */,
 				AA100000B /* ToastView.swift in Sources */,
 				AA100000C /* DesignSystem.swift in Sources */,
+				AA100000E /* DiscoverView.swift in Sources */,
+				AA100000F /* TappableLyricsView.swift in Sources */,
+				AA1000010 /* SlangSheet.swift in Sources */,
+				AA1000011 /* HeroHeader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
