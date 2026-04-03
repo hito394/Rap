@@ -54,8 +54,8 @@
 		AB1000014 /* YouTubePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerView.swift; sourceTree = "<group>"; };
 		AB1000015 /* VideoSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSearchView.swift; sourceTree = "<group>"; };
 		AB1000016 /* VideoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDetailView.swift; sourceTree = "<group>"; };
-		AB100000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AB100000F /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,7 +74,7 @@
 			children = (
 				AB1000001 /* RapApp.swift */,
 				AB1000002 /* ContentView.swift */,
-				AB100000E /* Info.plist */,
+				AC100001 /* Info.plist */,
 				AB100000D /* Assets.xcassets */,
 				AD1000003 /* Services */,
 				AD1000004 /* Models */,
@@ -86,7 +86,7 @@
 		AD1000002 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AB100000F /* Rap.app */,
+				AC100002 /* Rap.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -164,7 +164,7 @@
 			);
 			name = Rap;
 			productName = Rap;
-			productReference = AB100000F /* Rap.app */;
+			productReference = AC100002 /* Rap.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
