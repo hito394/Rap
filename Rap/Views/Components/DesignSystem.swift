@@ -99,6 +99,139 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - FlowLayout (wrapping HStack, shared across all views)
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        let height = rows.map { $0.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0 }
+            .reduce(0) { $0 + $1 + spacing } - spacing
+        return CGSize(width: proposal.width ?? 0, height: max(0, height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            let rowHeight = row.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+            var x = bounds.minX
+            for subview in row {
+                let size = subview.sizeThatFits(.unspecified)
+                subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+                x += size.width + spacing
+            }
+            y += rowHeight + spacing
+        }
+    }
+
+    private func computeRows(proposal: ProposedViewSize, subviews: Subviews) -> [[LayoutSubview]] {
+        let width = proposal.width ?? .infinity
+        var rows: [[LayoutSubview]] = [[]]
+        var currentX: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > width && !rows.last!.isEmpty {
+                rows.append([subview])
+                currentX = size.width + spacing
+            } else {
+                rows[rows.count - 1].append(subview)
+                currentX += size.width + spacing
+            }
+        }
+        return rows
+    }
+}
+
+// MARK: - SectionGroup (titled section wrapper)
+struct SectionGroup<Content: View>: View {
+    let title: String
+    let icon: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.gold)
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.gray)
+                    .tracking(1.2)
+            }
+            .padding(.horizontal, 20)
+            content
+        }
+    }
+}
+
+// MARK: - InputField
+struct InputField: View {
+    let placeholder: String
+    @Binding var text: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundColor(Color.gold)
+                .frame(width: 18)
+            TextField(placeholder, text: $text)
+                .font(.system(.body))
+                .foregroundColor(.white)
+                .tint(Color.gold)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .cardStyle()
+    }
+}
+
+// MARK: - StreamingTrackCard (album art style pickup card)
+struct StreamingTrackCard: View {
+    let track: PickupTrack
+    let action: () -> Void
+
+    private var gradientColors: [Color] {
+        let hash = abs(track.title.hashValue)
+        let palettes: [[Color]] = [
+            [Color(hex: "#2a1a00"), Color(hex: "#1a0d00")],
+            [Color(hex: "#001a2a"), Color(hex: "#000d1a")],
+            [Color(hex: "#1a002a"), Color(hex: "#0d001a")],
+            [Color(hex: "#002a1a"), Color(hex: "#001a0d")],
+            [Color(hex: "#2a0000"), Color(hex: "#1a0000")],
+        ]
+        return palettes[hash % palettes.count]
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LinearGradient(colors: gradientColors,
+                                             startPoint: .topLeading,
+                                             endPoint: .bottomTrailing))
+                        .frame(width: 130, height: 130)
+                    Text(track.emoji).font(.system(size: 44))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white).lineLimit(1)
+                    Text(track.artist)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.gray).lineLimit(1)
+                }
+                .frame(width: 130, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Score Ring
 struct ScoreRing: View {
     let score: Int

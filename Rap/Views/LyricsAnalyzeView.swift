@@ -352,8 +352,15 @@ struct RhymePairRow: View {
 
 struct InfoCard: View {
     let title: String
-    let body: String
+    let content: String   // renamed from body to avoid conflict with View.body
     let icon: String
+
+    // Keep external label as `body:` for backward compatibility at call sites
+    init(title: String, body: String, icon: String) {
+        self.title = title
+        self.content = body
+        self.icon = icon
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -362,7 +369,7 @@ struct InfoCard: View {
                     .font(.system(size: 11)).foregroundColor(Color.gold)
                 SectionHeader(title: title)
             }
-            Text(body)
+            Text(content)
                 .font(.system(.subheadline))
                 .foregroundColor(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)

@@ -1,6 +1,8 @@
 import Foundation
 
-struct YouTubeVideo: Identifiable, Codable {
+struct YouTubeVideo: Identifiable, Codable, Hashable {
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: YouTubeVideo, rhs: YouTubeVideo) -> Bool { lhs.id == rhs.id }
     let id: String
     let title: String
     let channelTitle: String
