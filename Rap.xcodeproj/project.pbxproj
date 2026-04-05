@@ -32,6 +32,7 @@
 		AA1000017 /* BattleJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000017 /* BattleJudge.swift */; };
 		AA1000018 /* RhymeHighlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000018 /* RhymeHighlightView.swift */; };
 		AA1000019 /* BattlePracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000019 /* BattlePracticeView.swift */; };
+		AA100001A /* iTunesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001A /* iTunesService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		AB1000017 /* BattleJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleJudge.swift; sourceTree = "<group>"; };
 		AB1000018 /* RhymeHighlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhymeHighlightView.swift; sourceTree = "<group>"; };
 		AB1000019 /* BattlePracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattlePracticeView.swift; sourceTree = "<group>"; };
+		AB100001A /* iTunesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iTunesService.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -102,6 +104,7 @@
 			children = (
 				AB1000003 /* AnthropicService.swift */,
 				AB1000013 /* YouTubeService.swift */,
+				AB100001A /* iTunesService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -250,6 +253,7 @@
 				AA1000017 /* BattleJudge.swift in Sources */,
 				AA1000018 /* RhymeHighlightView.swift in Sources */,
 				AA1000019 /* BattlePracticeView.swift in Sources */,
+				AA100001A /* iTunesService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

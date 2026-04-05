@@ -63,7 +63,24 @@ struct YouTubeService {
 
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
-            throw YouTubeError.httpError(httpResponse.statusCode)
+            let code = httpResponse.statusCode
+            // If 403 with iOS bundle header, retry without header (in case no restriction is set)
+            if code == 403 && request.value(forHTTPHeaderField: "X-Ios-Bundle-Identifier") != nil {
+                var retryRequest = URLRequest(url: request.url!)
+                retryRequest.cachePolicy = .reloadIgnoringLocalCacheData
+                if let (retryData, retryResponse) = try? await URLSession.shared.data(for: retryRequest),
+                   let retryHTTP = retryResponse as? HTTPURLResponse,
+                   (200...299).contains(retryHTTP.statusCode) {
+                    // retry succeeded without header
+                    guard let result = try? JSONDecoder().decode(YouTubeSearchResponse.self, from: retryData) else {
+                        throw YouTubeError.decodingError
+                    }
+                    let videos = result.items.compactMap { $0.toVideo() }
+                    guard !videos.isEmpty else { throw YouTubeError.noResults }
+                    return videos
+                }
+            }
+            throw YouTubeError.httpError(code)
         }
 
         guard let result = try? JSONDecoder().decode(YouTubeSearchResponse.self, from: data) else {

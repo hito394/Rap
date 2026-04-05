@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 @Observable
 class TrackDetailViewModel {
@@ -10,6 +11,11 @@ class TrackDetailViewModel {
     var rawResult: String?
     var toastMessage: String?
     var selectedTab = 0
+
+    // iTunes
+    var iTunesTrack: iTunesTrack? = nil
+    var isPlayingPreview = false
+    private var audioPlayer: AVPlayer? = nil
 
     var canDecode: Bool {
         !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -35,6 +41,29 @@ class TrackDetailViewModel {
         result = nil
         rawResult = nil
         selectedTab = 0
+        iTunesTrack = nil
+        stopPreview()
+    }
+
+    func togglePreview() {
+        guard let urlStr = iTunesTrack?.previewUrl, let url = URL(string: urlStr) else { return }
+        if isPlayingPreview {
+            audioPlayer?.pause()
+            isPlayingPreview = false
+        } else {
+            if audioPlayer == nil {
+                audioPlayer = AVPlayer(url: url)
+            }
+            audioPlayer?.seek(to: .zero)
+            audioPlayer?.play()
+            isPlayingPreview = true
+        }
+    }
+
+    func stopPreview() {
+        audioPlayer?.pause()
+        audioPlayer = nil
+        isPlayingPreview = false
     }
 
     func decode(saveHistory: (HistoryItem) -> Void) async {
@@ -42,9 +71,13 @@ class TrackDetailViewModel {
         isLoading = true
         result = nil
         rawResult = nil
+        stopPreview()
+
+        async let trackResult: String = AnthropicService.decodeTrack(title: titleText, artist: artistText)
+        async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
 
         do {
-            let raw = try await AnthropicService.decodeTrack(title: titleText, artist: artistText)
+            let raw = try await trackResult
             rawResult = raw
             result = TrackDecode.parse(from: raw)
             let query = "\(titleText) / \(artistText)"
@@ -53,6 +86,8 @@ class TrackDetailViewModel {
             toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
         }
 
+        iTunesTrack = await itunesResult
+        audioPlayer = nil
         isLoading = false
     }
 }
@@ -77,9 +112,13 @@ struct TrackDecodeView: View {
                         title: vm.titleText,
                         artist: vm.artistText,
                         isLoading: vm.isLoading,
+                        artworkUrl: vm.iTunesTrack?.artworkUrl500,
+                        hasPreview: vm.iTunesTrack?.previewUrl != nil,
+                        isPlayingPreview: vm.isPlayingPreview,
                         onAnalyze: vm.canDecode ? {
                             Task { await vm.decode { context.insert($0) } }
-                        } : nil
+                        } : nil,
+                        onTogglePreview: { vm.togglePreview() }
                     )
 
                     // Input fields (collapsible)
@@ -334,15 +373,12 @@ struct TrackDecodeView: View {
     }
 }
 
-// MARK: - Tappable bar card
+// MARK: - Bar card: lyric prominently + explanation always visible
 struct TappableBarCard: View {
     let bar: KeyBar
     let allSlangs: [SlangDefinition]
     var onSlangTap: (SlangDefinition) -> Void
 
-    @State private var showExplanation = false
-
-    // Merge bar-level slangs with global slangs
     private var barSlangs: [SlangDefinition] {
         var defs = allSlangs
         if let breakdown = bar.slangBreakdown {
@@ -354,59 +390,68 @@ struct TappableBarCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Tappable lyrics text
+        VStack(alignment: .leading, spacing: 8) {
+            // Lyric line — prominent
             TappableLyricsView(
                 text: bar.bar,
                 slangDefinitions: barSlangs,
                 onTap: onSlangTap
             )
 
-            // Expandable explanation
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) { showExplanation.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
-                    Text("解説")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Image(systemName: showExplanation ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray.opacity(0.5))
-                }
-            }
-            .buttonStyle(.plain)
+            // Divider
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 1)
 
-            if showExplanation {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(bar.explanation)
-                        .font(.system(.caption))
-                        .foregroundColor(.white.opacity(0.7))
+            // Explanation — always visible
+            Text(bar.explanation)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.65))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(4)
+
+            // Subtext (hidden meaning)
+            if let subtext = bar.subtext, !subtext.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Text("裏")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundColor(Color.gold)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.gold.opacity(0.12))
+                        .cornerRadius(3)
+                    Text(subtext)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.55))
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(3)
+                }
+            }
 
-                    if let subtext = bar.subtext, !subtext.isEmpty {
-                        HStack(alignment: .top, spacing: 6) {
-                            Text("裏読み")
-                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                                .foregroundColor(Color.gold.opacity(0.7))
-                                .padding(.top, 1)
-                            Text(subtext)
-                                .font(.system(.caption))
-                                .foregroundColor(.white.opacity(0.65))
-                                .fixedSize(horizontal: false, vertical: true)
-                                .lineSpacing(3)
+            // Slang chips
+            if !barSlangs.filter({ bar.bar.contains($0.word) }).isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(barSlangs.filter { bar.bar.contains($0.word) }) { slang in
+                            Button {
+                                onSlangTap(slang)
+                            } label: {
+                                Text(slang.word)
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(Color.gold)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.gold.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.gold.opacity(0.3), lineWidth: 0.5)
+                                    )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .padding(8)
-                        .background(Color.gold.opacity(0.05))
-                        .cornerRadius(4)
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(14)
