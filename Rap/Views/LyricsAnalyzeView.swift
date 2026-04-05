@@ -185,9 +185,9 @@ struct LyricsAnalyzeView: View {
             } else {
                 // Song search UI
                 VStack(spacing: 8) {
-                    InputField(placeholder: "曲名（例: HUMBLE.、C.R.E.A.M.）",
+                    InputField(placeholder: "曲名（例: Guidance、Kawasaki Drift）",
                                text: $vm.songTitle, icon: "music.note")
-                    InputField(placeholder: "アーティスト（例: Kendrick Lamar）※省略可",
+                    InputField(placeholder: "アーティスト（例: BAD HOP、KOHH）※省略可",
                                text: $vm.songArtist, icon: "person.fill")
                 }
                 if vm.result != nil {
@@ -215,6 +215,12 @@ struct LyricsAnalyzeView: View {
     @ViewBuilder
     private func resultSection(_ r: LyricsAnalysis) -> some View {
         VStack(spacing: 0) {
+            // Artist background + song context (song mode only)
+            if vm.inputMode == .song,
+               r.artistBackground != nil || r.songContext != nil {
+                artistContextSection(r)
+            }
+
             // Flow score banner
             flowScoreBanner(r)
 
@@ -235,6 +241,51 @@ struct LyricsAnalyzeView: View {
             .padding(.horizontal, 20)
             .padding(.top, 14)
         }
+    }
+
+    // MARK: Artist context section (song mode)
+    @ViewBuilder
+    private func artistContextSection(_ r: LyricsAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let bg = r.artistBackground {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 11)).foregroundColor(Color.gold)
+                        Text("ARTIST BACKGROUND")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.gray).tracking(1.2)
+                    }
+                    Text(bg)
+                        .font(.system(.subheadline))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(4)
+                }
+                .padding(14)
+                .cardStyle()
+            }
+            if let ctx = r.songContext {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text.fill")
+                            .font(.system(size: 11)).foregroundColor(Color.gold)
+                        Text("SONG CONTEXT")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.gray).tracking(1.2)
+                    }
+                    Text(ctx)
+                        .font(.system(.subheadline))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(4)
+                }
+                .padding(14)
+                .cardStyle()
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
     }
 
     // MARK: Flow score banner
