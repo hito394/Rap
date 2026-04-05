@@ -35,6 +35,10 @@ struct ContentView: View {
             FreeSearchView(preseededQuestion: navigateToSearch ? beginnerQuestion : nil)
                 .tabItem { Label("検索", systemImage: "magnifyingglass") }
                 .tag(4)
+
+            BattlePracticeView()
+                .tabItem { Label("バトル", systemImage: "mic.fill") }
+                .tag(5)
         }
         .tint(Color.gold)
         .onChange(of: navigateToTrack) { _, newVal in

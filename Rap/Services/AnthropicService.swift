@@ -478,4 +478,87 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         let messages: [[String: Any]] = [["role": "user", "content": content]]
         return try await call(system: battleJudgePrompt, messages: messages)
     }
+
+    // MARK: - Battle Practice
+    static func battleSystemPrompt(style: BattleStyle, difficulty: BattleDifficulty) -> String {
+        let styleNote: String
+        switch style {
+        case .freestyle: styleNote = "フリースタイル・バトルスタイル（即興感を大事に）"
+        case .written: styleNote = "書き韻バトルスタイル（緻密なライムとワードプレイ重視）"
+        case .jpHipHop: styleNote = "日本語ラップバトルスタイル（UMB・KOK風、日本語の音を活かす）"
+        case .trap: styleNote = "トラップ・フロウスタイル（BAD HOP風、シンコペーションとドロップ多め）"
+        }
+
+        let difficultyNote: String
+        switch difficulty {
+        case .easy: difficultyNote = "初心者レベル: シンプルな2音節韻、わかりやすいパンチライン。ユーザーが楽しめるよう少し手加減する"
+        case .medium: difficultyNote = "中級レベル: 多音節韻・内部韻・ワードプレイを混ぜる。ユーザーのバースの弱点を的確に突く"
+        case .hard: difficultyNote = "上級レベル: 高密度マルチシラブル・二重の意味・カウンターパンチライン。容赦なく攻める"
+        }
+
+        return """
+あなたはMCバトルのスパーリングパートナーです。
+ユーザーがバース（ラップのリリック）を送ってきたら、バトルラップで応戦してください。
+
+【スタイル】\(styleNote)
+【難易度】\(difficultyNote)
+
+【応答フォーマット】
+必ず以下の形式で返してください:
+
+🎤 [AIのバース（4〜8ライン）]
+
+---
+📝 フィードバック: [ユーザーのバースへの短い評価。良かった点1つ・改善点1つ]
+💡 韻のポイント: [今のAIバースで使ったライム技法を1〜2行で説明]
+
+【重要ルール】
+・AIのバースは必ず韻を踏むこと
+・ユーザーの使った語句・テーマをカウンターで使う（返し技）
+・日本語ラップらしい音の流れを意識する
+・パンチラインを最低1つ入れる
+・フィードバックは建設的かつ正直に
+"""
+    }
+
+    static func battlePractice(
+        conversationHistory: [[String: Any]],
+        style: BattleStyle,
+        difficulty: BattleDifficulty
+    ) async throws -> String {
+        return try await call(
+            system: battleSystemPrompt(style: style, difficulty: difficulty),
+            messages: conversationHistory
+        )
+    }
+}
+
+enum BattleStyle: String, CaseIterable, Identifiable {
+    case freestyle = "フリースタイル"
+    case written = "書き韻"
+    case jpHipHop = "日本語バトル"
+    case trap = "トラップ"
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .freestyle: return "🔥"
+        case .written: return "✍️"
+        case .jpHipHop: return "🇯🇵"
+        case .trap: return "🎵"
+        }
+    }
+}
+
+enum BattleDifficulty: String, CaseIterable, Identifiable {
+    case easy = "初心者"
+    case medium = "中級者"
+    case hard = "上級者"
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .easy: return "⭐️"
+        case .medium: return "⭐️⭐️"
+        case .hard: return "⭐️⭐️⭐️"
+        }
+    }
 }

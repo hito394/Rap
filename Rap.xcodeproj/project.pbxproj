@@ -31,6 +31,7 @@
 		AA1000016 /* VideoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000016 /* VideoDetailView.swift */; };
 		AA1000017 /* BattleJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000017 /* BattleJudge.swift */; };
 		AA1000018 /* RhymeHighlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000018 /* RhymeHighlightView.swift */; };
+		AA1000019 /* BattlePracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000019 /* BattlePracticeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,7 @@
 		AB1000016 /* VideoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDetailView.swift; sourceTree = "<group>"; };
 		AB1000017 /* BattleJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleJudge.swift; sourceTree = "<group>"; };
 		AB1000018 /* RhymeHighlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhymeHighlightView.swift; sourceTree = "<group>"; };
+		AB1000019 /* BattlePracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattlePracticeView.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -125,6 +127,7 @@
 				AB1000007 /* LyricsAnalyzeView.swift */,
 				AB1000008 /* TrackDecodeView.swift */,
 				AB1000009 /* FreeSearchView.swift */,
+				AB1000019 /* BattlePracticeView.swift */,
 				AD1000006 /* Components */,
 			);
 			path = Views;
@@ -244,6 +247,9 @@
 				AA1000014 /* YouTubePlayerView.swift in Sources */,
 				AA1000015 /* VideoSearchView.swift in Sources */,
 				AA1000016 /* VideoDetailView.swift in Sources */,
+				AA1000017 /* BattleJudge.swift in Sources */,
+				AA1000018 /* RhymeHighlightView.swift in Sources */,
+				AA1000019 /* BattlePracticeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
