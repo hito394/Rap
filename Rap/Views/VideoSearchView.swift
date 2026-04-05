@@ -36,6 +36,46 @@ struct VideoSearchView: View {
     @State private var vm = VideoSearchViewModel()
     @State private var selectedVideo: YouTubeVideo?
     @FocusState private var searchFocused: Bool
+    @State private var showURLInput = false
+    @State private var manualURL = ""
+
+    private func extractVideoID(from text: String) -> String? {
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        if let range = text.range(of: "v=") {
+            let after = String(text[range.upperBound...])
+            let id = String(after.prefix(while: { $0 != "&" && $0 != " " }))
+            if id.count == 11 { return id }
+        }
+        // https://youtu.be/VIDEO_ID
+        if let range = text.range(of: "youtu.be/") {
+            let after = String(text[range.upperBound...])
+            let id = String(after.prefix(11))
+            if id.count == 11 { return id }
+        }
+        // Raw 11-char video ID
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.count == 11 && clean.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) {
+            return clean
+        }
+        return nil
+    }
+
+    private func openManualVideo() {
+        guard let id = extractVideoID(from: manualURL) else {
+            return
+        }
+        let video = YouTubeVideo(
+            id: id,
+            title: "YouTube動画",
+            channelTitle: "",
+            description: "",
+            thumbnailURL: "https://img.youtube.com/vi/\(id)/hqdefault.jpg",
+            publishedAt: ""
+        )
+        selectedVideo = video
+        manualURL = ""
+        showURLInput = false
+    }
 
     var body: some View {
         NavigationStack {
@@ -88,6 +128,10 @@ struct VideoSearchView: View {
                                         icon: "video.slash")
                     }
 
+                    // Manual YouTube URL entry
+                    urlInputSection
+                        .padding(.horizontal, 20)
+
                     Spacer().frame(height: 40)
                 }
                 .padding(.top, 8)
@@ -102,6 +146,52 @@ struct VideoSearchView: View {
             }
         }
         .toast(message: $vm.toastMessage)
+    }
+
+    // MARK: Manual URL input
+    private var urlInputSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showURLInput.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
+                        .font(.system(size: 11))
+                    Text("YouTubeのURLから直接再生")
+                        .font(.system(size: 12, design: .monospaced))
+                    Spacer()
+                    Image(systemName: showURLInput ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10))
+                }
+                .foregroundColor(.gray)
+            }
+            .buttonStyle(.plain)
+
+            if showURLInput {
+                HStack(spacing: 8) {
+                    TextField("https://youtu.be/... または動画ID", text: $manualURL)
+                        .font(.system(.subheadline))
+                        .foregroundColor(.white)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .padding(10)
+                        .background(Color.white.opacity(0.05))
+                        .cornerRadius(8)
+
+                    Button("開く") { openManualVideo() }
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundColor(manualURL.isEmpty ? .gray : Color(hex: "#0d0d0d"))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(manualURL.isEmpty ? Color.gray.opacity(0.2) : Color.gold)
+                        .cornerRadius(8)
+                        .disabled(manualURL.isEmpty)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(14)
+        .cardStyle()
     }
 
     // MARK: Search bar

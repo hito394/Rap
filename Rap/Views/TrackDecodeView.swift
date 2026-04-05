@@ -17,6 +17,38 @@ class TrackDetailViewModel {
     var isPlayingPreview = false
     private var audioPlayer: AVPlayer? = nil
 
+    // Predictive search
+    var suggestions: [iTunesTrack] = []
+    var showSuggestions = false
+    private var suggestTask: Task<Void, Never>? = nil
+
+    func updateSuggestions(for title: String) {
+        suggestTask?.cancel()
+        guard title.count >= 2 else {
+            suggestions = []
+            showSuggestions = false
+            return
+        }
+        suggestTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000) // 350ms debounce
+            guard !Task.isCancelled else { return }
+            let results = await iTunesService.searchByTitle(query: title)
+            if !Task.isCancelled {
+                suggestions = results
+                showSuggestions = !results.isEmpty
+            }
+        }
+    }
+
+    func selectSuggestion(_ track: iTunesTrack) {
+        titleText = track.trackName
+        artistText = track.artistName
+        iTunesTrack = track
+        showSuggestions = false
+        suggestions = []
+        suggestTask?.cancel()
+    }
+
     var canDecode: Bool {
         !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !artistText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -189,7 +221,19 @@ struct TrackDecodeView: View {
     // MARK: Input section
     private var inputSection: some View {
         VStack(spacing: 10) {
-            InputField(placeholder: "曲名", text: $vm.titleText, icon: "music.note")
+            VStack(spacing: 0) {
+                InputField(placeholder: "曲名", text: $vm.titleText, icon: "music.note")
+                    .onChange(of: vm.titleText) { _, new in
+                        vm.updateSuggestions(for: new)
+                    }
+
+                if vm.showSuggestions {
+                    SuggestionDropdown(suggestions: vm.suggestions) { track in
+                        vm.selectSuggestion(track)
+                    }
+                    .zIndex(10)
+                }
+            }
             InputField(placeholder: "アーティスト名", text: $vm.artistText, icon: "person.fill")
         }
     }
@@ -456,6 +500,67 @@ struct TappableBarCard: View {
         }
         .padding(14)
         .cardStyle()
+    }
+}
+
+// MARK: - Suggestion Dropdown
+struct SuggestionDropdown: View {
+    let suggestions: [iTunesTrack]
+    let onSelect: (iTunesTrack) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(suggestions) { track in
+                Button { onSelect(track) } label: {
+                    HStack(spacing: 10) {
+                        if let urlStr = track.artworkUrl100, let url = URL(string: urlStr) {
+                            AsyncImage(url: url) { phase in
+                                if case .success(let img) = phase {
+                                    img.resizable().aspectRatio(contentMode: .fill)
+                                } else {
+                                    Color.gray.opacity(0.2)
+                                }
+                            }
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                        } else {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gold.opacity(0.15))
+                                .frame(width: 36, height: 36)
+                                .overlay(Image(systemName: "music.note").font(.system(size: 14)).foregroundColor(Color.gold.opacity(0.5)))
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(track.trackName)
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            Text(track.artistName)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(Color.gold)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        if track.previewUrl != nil {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                }
+                .buttonStyle(.plain)
+
+                if track.id != suggestions.last?.id {
+                    Divider().background(Color.divider).padding(.leading, 58)
+                }
+            }
+        }
+        .background(Color(hex: "#1c1c1e"))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
+        .shadow(color: .black.opacity(0.5), radius: 12, y: 4)
+        .padding(.top, 2)
     }
 }
 

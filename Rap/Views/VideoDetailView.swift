@@ -34,24 +34,6 @@ class VideoDetailViewModel {
     var chatInput = ""
     var isChatLoading = false
     var selectedTab = 0
-    var battleJudge: BattleJudge?
-    var isBattleLoading = false
-
-    func judgeTheBattle() async {
-        isBattleLoading = true
-        battleJudge = nil
-        do {
-            let raw = try await AnthropicService.judgeBattle(
-                videoTitle: video.title,
-                channel: video.channelTitle
-            )
-            battleJudge = BattleJudge.parse(from: raw)
-        } catch {
-            toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
-        }
-        isBattleLoading = false
-    }
-
     init(video: YouTubeVideo) {
         self.video = video
     }
@@ -144,7 +126,7 @@ struct VideoDetailView: View {
                     .padding(.vertical, 12)
 
                 // Tabs
-                let tabs = ["解説", "Q&A", "判定"]
+                let tabs = ["解説", "Q&A"]
                 SegmentControl(tabs: tabs, selected: $vm.selectedTab)
                 Divider().background(Color.divider)
 
@@ -152,7 +134,6 @@ struct VideoDetailView: View {
                     switch vm.selectedTab {
                     case 0: explanationTab
                     case 1: chatTab
-                    case 2: battleTab
                     default: explanationTab
                     }
                 }
@@ -336,41 +317,6 @@ struct VideoDetailView: View {
         }
     }
 
-    // MARK: Battle tab
-    @ViewBuilder
-    private var battleTab: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if vm.battleJudge == nil && !vm.isBattleLoading {
-                VStack(spacing: 16) {
-                    Image(systemName: "figure.martial.arts")
-                        .font(.system(size: 36, weight: .ultraLight))
-                        .foregroundColor(Color.gold.opacity(0.6))
-                    Text("AIがバトルを審判します")
-                        .font(.system(.subheadline))
-                        .foregroundColor(.gray)
-                    Button("AIバトル判定") {
-                        Task { await vm.judgeTheBattle() }
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .frame(maxWidth: 240)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            }
-
-            if vm.isBattleLoading {
-                VStack(spacing: 12) {
-                    AnalyzingIndicator()
-                    LoadingView()
-                }
-            }
-
-            if let judge = vm.battleJudge {
-                BattleJudgeView(judge: judge)
-            }
-        }
-    }
-
     // MARK: Chat suggestions
     private var chatSuggestions: some View {
         let suggestions = buildSuggestions()
@@ -472,155 +418,3 @@ struct ExpertiseLevelButton: View {
     }
 }
 
-// MARK: - Battle Judge View
-struct BattleJudgeView: View {
-    let judge: BattleJudge
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // MC cards side by side
-            HStack(spacing: 10) {
-                MCScoreCard(mc: judge.mc1, isWinner: judge.mc1.name == judge.winner)
-                MCScoreCard(mc: judge.mc2, isWinner: judge.mc2.name == judge.winner)
-            }
-
-            // Winner announcement
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 11)).foregroundColor(Color.gold)
-                    SectionHeader(title: "勝者")
-                }
-                Text(judge.winner)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color.gold)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-            .padding(14)
-            .cardStyle()
-
-            // Decisive moment
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 11)).foregroundColor(Color.gold)
-                    SectionHeader(title: "決定的瞬間")
-                }
-                Text(judge.decisiveMoment)
-                    .font(.system(.subheadline))
-                    .foregroundColor(.white.opacity(0.85))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineSpacing(4)
-            }
-            .padding(14)
-            .cardStyle()
-
-            // Battle rating + judge comment
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 16) {
-                    ScoreRing(score: judge.battleRating)
-                    VStack(alignment: .leading, spacing: 4) {
-                        SectionHeader(title: "バトル評価")
-                        Text(judge.judgeComment)
-                            .font(.system(.subheadline))
-                            .foregroundColor(.white.opacity(0.85))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .lineSpacing(4)
-                    }
-                }
-            }
-            .padding(14)
-            .cardStyle()
-        }
-    }
-}
-
-// MARK: - MC Score Card
-struct MCScoreCard: View {
-    let mc: MCScore
-    let isWinner: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Name + winner badge
-            HStack(spacing: 6) {
-                Text(mc.name)
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
-                    .foregroundColor(isWinner ? Color.gold : .white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if isWinner {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color.gold)
-                }
-            }
-
-            // Score bar
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(mc.score)")
-                    .font(.system(size: 22, weight: .bold, design: .monospaced))
-                    .foregroundColor(isWinner ? Color.gold : .white)
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.white.opacity(0.08))
-                            .frame(height: 4)
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(isWinner ? Color.gold : Color.white.opacity(0.5))
-                            .frame(width: geo.size.width * CGFloat(mc.score) / 100.0, height: 4)
-                            .animation(.easeOut(duration: 0.8), value: mc.score)
-                    }
-                }
-                .frame(height: 4)
-            }
-
-            // Strengths
-            if !mc.strengths.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("強み")
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundColor(Color.gold.opacity(0.7))
-                    ForEach(mc.strengths, id: \.self) { s in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color.gold.opacity(0.6))
-                                .frame(width: 3, height: 3)
-                            Text(s)
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.75))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-
-            // Weaknesses
-            if !mc.weaknesses.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("弱点")
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.gray)
-                    ForEach(mc.weaknesses, id: \.self) { w in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color.gray.opacity(0.5))
-                                .frame(width: 3, height: 3)
-                            Text(w)
-                                .font(.system(size: 10))
-                                .foregroundColor(.gray)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(isWinner ? Color.gold.opacity(0.4) : Color.clear, lineWidth: 1)
-        )
-    }
-}
