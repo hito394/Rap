@@ -47,10 +47,16 @@ struct YouTubeService {
 
         guard let url = components.url else { throw YouTubeError.decodingError }
 
+        var request = URLRequest(url: url)
+        // Required when API key has iOS app restriction
+        if let bundleID = Bundle.main.bundleIdentifier {
+            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
+        }
+
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(from: url)
+            (data, response) = try await URLSession.shared.data(for: request)
         } catch {
             throw YouTubeError.networkError(error)
         }
