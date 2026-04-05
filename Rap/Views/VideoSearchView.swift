@@ -38,7 +38,7 @@ struct VideoSearchView: View {
     @FocusState private var searchFocused: Bool
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     // Search bar
