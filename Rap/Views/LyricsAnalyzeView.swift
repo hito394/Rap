@@ -14,6 +14,21 @@ class LyricsAnalyzeViewModel {
     var rawResult: String?
     var toastMessage: String?
 
+    var rhymeResult: RhymeHighlightResult?
+    var isRhymeLoading = false
+
+    func analyzeRhymes() async {
+        guard !lyricsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        isRhymeLoading = true
+        do {
+            let raw = try await AnthropicService.analyzeRhymes(lyricsText)
+            rhymeResult = RhymeHighlightResult.parse(from: raw)
+        } catch {
+            toastMessage = "ライム解析に失敗しました"
+        }
+        isRhymeLoading = false
+    }
+
     var charCount: Int { lyricsText.count }
     var maxChars: Int { 1500 }
     var canAnalyze: Bool {
@@ -357,6 +372,37 @@ struct LyricsAnalyzeView: View {
                 }
                 .padding(14).cardStyle()
             }
+
+            // Rhyme highlight section
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "paintpalette.fill")
+                        .font(.system(size: 11)).foregroundColor(Color.gold)
+                    SectionHeader(title: "韻のビジュアライズ")
+                }
+                if let rhymeResult = vm.rhymeResult {
+                    RhymeHighlightView(result: rhymeResult)
+                } else {
+                    Button {
+                        Task { await vm.analyzeRhymes() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if vm.isRhymeLoading {
+                                ProgressView().tint(Color(hex: "#0d0d0d")).scaleEffect(0.8)
+                            }
+                            Text(vm.isRhymeLoading ? "解析中..." : "韻をビジュアライズ")
+                                .font(.system(.subheadline, weight: .bold))
+                                .foregroundColor(Color(hex: "#0d0d0d"))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.gold)
+                        .cornerRadius(4)
+                    }
+                    .disabled(vm.isRhymeLoading)
+                }
+            }
+            .padding(14).cardStyle()
 
             InfoCard(title: "Highlights", body: r.highlights, icon: "sparkles")
             InfoCard(title: "Advice", body: r.tips, icon: "lightbulb.fill")

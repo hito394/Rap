@@ -1,5 +1,54 @@
 import Foundation
 
+// MARK: - Rhyme Highlight Models
+
+struct RhymeGroup: Codable, Identifiable {
+    var id: Int { groupId }
+    let groupId: Int
+    let words: [String]
+    let phonetic: String
+    let type: String
+    enum CodingKeys: String, CodingKey {
+        case groupId = "group_id"
+        case words, phonetic, type
+    }
+}
+
+struct WordAnnotation: Codable {
+    let word: String
+    let groupId: Int
+    enum CodingKeys: String, CodingKey {
+        case word
+        case groupId = "group_id"
+    }
+}
+
+struct AnnotatedLine: Codable, Identifiable {
+    var id = UUID()
+    let line: String
+    let annotations: [WordAnnotation]
+    enum CodingKeys: String, CodingKey { case line, annotations }
+}
+
+struct RhymeHighlightResult: Codable {
+    let rhymeGroups: [RhymeGroup]
+    let annotatedLines: [AnnotatedLine]
+    enum CodingKeys: String, CodingKey {
+        case rhymeGroups = "rhyme_groups"
+        case annotatedLines = "annotated_lines"
+    }
+    static func parse(from json: String) -> RhymeHighlightResult? {
+        let cleaned = json.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let data = cleaned.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(RhymeHighlightResult.self, from: data)
+    }
+}
+
+// MARK: - Lyrics Analysis Models
+
 struct RhymePair: Codable, Identifiable {
     var id = UUID()
     let word1: String

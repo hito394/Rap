@@ -426,4 +426,56 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
             messages: conversationHistory
         )
     }
+
+    // MARK: - Rhyme Highlight
+
+    static let rhymeHighlightPrompt = """
+あなたはラップのライム解析専門家です。
+入力されたリリックのテキストを解析し、韻を踏んでいる語句グループを特定してください。
+
+以下のJSON形式のみで返してください（コードブロック不要）:
+{
+  "rhyme_groups": [
+    {
+      "group_id": 0,
+      "words": ["韻を踏んでいる語句1", "語句2", "語句3"],
+      "phonetic": "共通する音（カタカナ）",
+      "type": "完全韻 / 母音韻 / 多音節韻 / 内部韻"
+    }
+  ],
+  "annotated_lines": [
+    {
+      "line": "原文の行",
+      "annotations": [
+        {"word": "語句", "group_id": 0}
+      ]
+    }
+  ]
+}
+"""
+
+    static func analyzeRhymes(_ lyrics: String) async throws -> String {
+        let messages: [[String: Any]] = [["role": "user", "content": lyrics]]
+        return try await call(system: rhymeHighlightPrompt, messages: messages)
+    }
+
+    // MARK: - Battle Judge
+
+    static func judgeBattle(videoTitle: String, channel: String) async throws -> String {
+        let battleJudgePrompt = """
+あなたはMCバトルの公正な審判です。
+動画情報からバトルの参加者・内容を推定し、以下のJSON形式で審判を下してください（コードブロック不要）:
+{
+  "mc1": {"name": "MC1の名前", "score": 0-100, "strengths": ["強み1", "強み2"], "weaknesses": ["弱点"]},
+  "mc2": {"name": "MC2の名前", "score": 0-100, "strengths": ["強み1", "強み2"], "weaknesses": ["弱点"]},
+  "winner": "勝者のMC名",
+  "decisive_moment": "勝負を決定づけたと思われるポイント",
+  "battle_rating": 0-10,
+  "judge_comment": "審判コメント（バトル全体の評価・見どころ）"
+}
+"""
+        let content = "動画タイトル: \(videoTitle)\nチャンネル: \(channel)"
+        let messages: [[String: Any]] = [["role": "user", "content": content]]
+        return try await call(system: battleJudgePrompt, messages: messages)
+    }
 }
