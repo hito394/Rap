@@ -12,40 +12,40 @@ struct BeginnerGuideItem: Identifiable {
 extension BeginnerGuideItem {
     static let list: [BeginnerGuideItem] = [
         BeginnerGuideItem(
-            title: "ヒップホップって何？",
-            subtitle: "4つの要素から始まった文化",
-            emoji: "🎤",
-            question: "ヒップホップとは何ですか？歴史や文化的背景を、全く知らない初心者にもわかりやすく教えてください。"
+            title: "日本語ラップってなに？",
+            subtitle: "BAD HOP・KOHH・Awichから学ぶ",
+            emoji: "🇯🇵",
+            question: "日本語ラップとは何ですか？BAD HOP・KOHH・Awichなど有名どころを例に、全くの初心者にわかりやすく教えてください。"
         ),
         BeginnerGuideItem(
             title: "MCバトルとは？",
-            subtitle: "言葉でぶつかり合う戦い",
+            subtitle: "UMB・KOKって何が凄いの？",
             emoji: "⚔️",
-            question: "MCバトルとは何ですか？どんなルールで、どうやって勝ち負けが決まるのか、初心者向けに説明してください。"
+            question: "日本のMCバトルとは何ですか？UMBやKOKはどんな大会で、どうやって勝ち負けが決まるのか、初心者向けに説明してください。"
         ),
         BeginnerGuideItem(
             title: "フリースタイルって？",
             subtitle: "即興でラップする技術",
             emoji: "🔥",
-            question: "フリースタイルラップとは何ですか？なぜ難しいのか、どう練習するのか教えてください。"
+            question: "フリースタイルラップとは何ですか？日本の例（フリースタイルダンジョン・高校生RAP選手権等）を交えて、なぜ難しいのか教えてください。"
         ),
         BeginnerGuideItem(
             title: "ライムって何がすごいの？",
-            subtitle: "ただの韻踏みじゃない",
+            subtitle: "日本語ラップならではの技術",
             emoji: "📖",
-            question: "ラップのライム（韻）とは何ですか？どんな種類があって、なぜ難しいのか、具体例を交えて教えてください。"
+            question: "日本語ラップのライム（韻）とは何ですか？英語と日本語の違い、具体的な技法を例を挙げて初心者に教えてください。"
         ),
         BeginnerGuideItem(
-            title: "サンプリングって？",
-            subtitle: "既存の音楽を使う技術",
-            emoji: "🎵",
-            question: "ヒップホップのサンプリングとは何ですか？どうやって使うのか、有名な例を挙げて初心者に教えてください。"
+            title: "川崎・上野・沖縄って？",
+            subtitle: "出身地で変わるラップスタイル",
+            emoji: "📍",
+            question: "日本語ラップにおける出身地・地域性について教えてください。川崎（BAD HOP）・上野（KOHH）・沖縄（Awich・唾奇）・東京など、地域によってどうスタイルが違うのか教えてください。"
         ),
         BeginnerGuideItem(
-            title: "日本語ラップの歴史",
-            subtitle: "日本のシーンを知る",
-            emoji: "🇯🇵",
-            question: "日本語ラップの歴史を教えてください。どうやって始まって、どんなアーティストが有名なのか、初心者向けに解説してください。"
+            title: "サイファーって？",
+            subtitle: "みんなで輪になって即興ラップ",
+            emoji: "🌀",
+            question: "ヒップホップのサイファー（cypher）とは何ですか？どういう場面で行われ、なぜ重要なのか、初心者向けに教えてください。"
         ),
     ]
 }

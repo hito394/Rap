@@ -43,13 +43,13 @@ struct EraTile: Identifiable {
 
 extension EraTile {
     static let list: [EraTile] = [
-        EraTile(label: "Golden Age", years: "1986–1994", color: "#8B6914", icon: "crown.fill"),
-        EraTile(label: "East vs West", years: "1992–1997", color: "#1a3a5c", icon: "bolt.fill"),
-        EraTile(label: "Bling Era", years: "1997–2006", color: "#4a2060", icon: "diamond.fill"),
-        EraTile(label: "Ringtone Rap", years: "2006–2012", color: "#1a4a2a", icon: "phone.fill"),
-        EraTile(label: "Trap Era", years: "2012–2018", color: "#3a1a1a", icon: "waveform"),
-        EraTile(label: "SoundCloud", years: "2015–2019", color: "#1a2a4a", icon: "cloud.fill"),
-        EraTile(label: "Drill Wave", years: "2018–Now", color: "#0d1a0d", icon: "music.note"),
+        EraTile(label: "日本語ラップ黎明期", years: "1986–1995", color: "#1a3a5c", icon: "flag.fill"),
+        EraTile(label: "BUDDHA BRAND時代", years: "1995–2003", color: "#8B6914", icon: "crown.fill"),
+        EraTile(label: "アンダーグラウンド黄金期", years: "2003–2010", color: "#4a2060", icon: "music.note"),
+        EraTile(label: "バトルMC台頭", years: "2010–2015", color: "#1a4a2a", icon: "bolt.fill"),
+        EraTile(label: "トラップ上陸", years: "2015–2018", color: "#3a1a1a", icon: "waveform"),
+        EraTile(label: "メインストリーム化", years: "2018–2022", color: "#1a2a4a", icon: "sparkles"),
+        EraTile(label: "現在のシーン", years: "2022–Now", color: "#0d1a0d", icon: "flame.fill"),
     ]
 }
 
@@ -153,15 +153,15 @@ struct PickupTrack: Identifiable {
 
 extension PickupTrack {
     static let list: [PickupTrack] = [
-        PickupTrack(title: "HUMBLE.", artist: "Kendrick Lamar", emoji: "👑"),
-        PickupTrack(title: "God's Plan", artist: "Drake", emoji: "🙏"),
-        PickupTrack(title: "Lose Yourself", artist: "Eminem", emoji: "🎤"),
-        PickupTrack(title: "New York State of Mind", artist: "Nas", emoji: "🗽"),
-        PickupTrack(title: "C.R.E.A.M.", artist: "Wu-Tang Clan", emoji: "💵"),
-        PickupTrack(title: "Gin and Juice", artist: "Snoop Dogg", emoji: "🥂"),
-        PickupTrack(title: "Juicy", artist: "The Notorious B.I.G.", emoji: "💎"),
-        PickupTrack(title: "99 Problems", artist: "JAY-Z", emoji: "🔥"),
-        PickupTrack(title: "Alright", artist: "Kendrick Lamar", emoji: "✊"),
-        PickupTrack(title: "Sicko Mode", artist: "Travis Scott", emoji: "🌙"),
+        PickupTrack(title: "Bad Bitch 美学", artist: "Awich", emoji: "👑"),
+        PickupTrack(title: "Kawasaki Drift", artist: "BAD HOP", emoji: "🏎️"),
+        PickupTrack(title: "貧乏ゆすり", artist: "KOHH", emoji: "🌸"),
+        PickupTrack(title: "Pick Up", artist: "Creepy Nuts", emoji: "🎤"),
+        PickupTrack(title: "Rasen", artist: "舐達麻", emoji: "🌀"),
+        PickupTrack(title: "Don't Trust Me", artist: "BAD HOP", emoji: "🔥"),
+        PickupTrack(title: "PINK CHAMPAGNE", artist: "T-Pablow", emoji: "🥂"),
+        PickupTrack(title: "WASTED", artist: "KOHH", emoji: "💫"),
+        PickupTrack(title: "生業", artist: "仙人掌", emoji: "🌿"),
+        PickupTrack(title: "Alter Ego", artist: "Daichi Yamamoto", emoji: "🎭"),
     ]
 }
