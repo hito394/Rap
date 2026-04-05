@@ -11,7 +11,13 @@ enum YouTubeError: LocalizedError {
         switch self {
         case .invalidAPIKey: return "YouTube APIキーが設定されていません"
         case .networkError: return "接続を確認してください"
-        case .httpError(let code): return "YouTube APIエラー (HTTP \(code))"
+        case .httpError(let code):
+            switch code {
+            case 400: return "YouTube API: 不正なリクエストです (400)"
+            case 403: return "YouTube API認証エラー (403)\nGoogle Cloud Console → APIとサービス → ライブラリ で「YouTube Data API v3」を有効化してください"
+            case 429: return "YouTube API: 本日のクォータ上限に達しました (429)"
+            default: return "YouTube APIエラー (HTTP \(code))"
+            }
         case .noResults: return "動画が見つかりませんでした"
         case .decodingError: return "データの解析に失敗しました"
         }

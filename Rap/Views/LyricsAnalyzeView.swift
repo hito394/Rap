@@ -340,6 +340,24 @@ struct LyricsAnalyzeView: View {
             }
             .cardStyle()
 
+            // Key bars (song mode)
+            if let bars = r.keyBars, !bars.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.quote")
+                            .font(.system(size: 11)).foregroundColor(Color.gold)
+                        SectionHeader(title: "バース解説")
+                        Spacer()
+                        Text("\(bars.count)ライン")
+                            .font(.system(size: 10, design: .monospaced)).foregroundColor(.gray)
+                    }
+                    ForEach(bars) { bar in
+                        LyricsBarCard(bar: bar)
+                    }
+                }
+                .padding(14).cardStyle()
+            }
+
             InfoCard(title: "Highlights", body: r.highlights, icon: "sparkles")
             InfoCard(title: "Advice", body: r.tips, icon: "lightbulb.fill")
         }
@@ -766,5 +784,80 @@ struct TrackSlangSection: View {
             }
         }
         .padding(14).cardStyle()
+    }
+}
+
+// MARK: - Lyrics Bar Card (line-by-line explanation in song mode)
+struct LyricsBarCard: View {
+    let bar: KeyBar
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+            } label: {
+                HStack(alignment: .top, spacing: 8) {
+                    Rectangle().fill(Color.gold).frame(width: 2).padding(.top, 2)
+                    Text(bar.bar)
+                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                        .foregroundColor(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(bar.explanation)
+                        .font(.system(.caption))
+                        .foregroundColor(.white.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(3)
+
+                    if let breakdown = bar.slangBreakdown, !breakdown.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("スラング")
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.gray).tracking(0.8)
+                            ForEach(breakdown) { s in
+                                HStack(alignment: .top, spacing: 6) {
+                                    Text(s.word)
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                        .foregroundColor(Color.gold)
+                                    Text("→ \(s.meaning)")
+                                        .font(.system(.caption))
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            }
+                        }
+                    }
+
+                    if let sub = bar.subtext, !sub.isEmpty {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("裏")
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .foregroundColor(Color.gold.opacity(0.7))
+                                .frame(width: 20)
+                            Text(sub)
+                                .font(.system(.caption))
+                                .foregroundColor(.white.opacity(0.6))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .lineSpacing(2)
+                        }
+                    }
+                }
+                .padding(.leading, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(expanded ? 0.04 : 0.02))
+        .cornerRadius(4)
+        .overlay(RoundedRectangle(cornerRadius: 4)
+            .stroke(Color.gold.opacity(expanded ? 0.2 : 0.08), lineWidth: 0.5))
     }
 }

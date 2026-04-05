@@ -63,6 +63,7 @@ struct LyricsAnalysis: Codable {
     let lyricsExcerpt: String?
     let artistBackground: String?
     let songContext: String?
+    let keyBars: [KeyBar]?
 
     enum CodingKeys: String, CodingKey {
         case rhymeTypes = "rhyme_types"
@@ -77,6 +78,7 @@ struct LyricsAnalysis: Codable {
         case lyricsExcerpt = "lyrics_excerpt"
         case artistBackground = "artist_background"
         case songContext = "song_context"
+        case keyBars = "key_bars"
     }
 
     static func parse(from json: String) -> LyricsAnalysis? {
