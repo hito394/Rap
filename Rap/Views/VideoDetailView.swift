@@ -80,10 +80,10 @@ class VideoDetailViewModel {
                 videoTitle: video.title,
                 level: expertiseLevel
             )
-            chatMessages.removeLast()
+            if !chatMessages.isEmpty { chatMessages.removeLast() }
             chatMessages.append(ChatMessage(role: "assistant", content: response))
         } catch {
-            chatMessages.removeLast()
+            if !chatMessages.isEmpty { chatMessages.removeLast() }
             toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
         }
 

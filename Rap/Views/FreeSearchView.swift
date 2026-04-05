@@ -48,14 +48,14 @@ class FreeSearchViewModel {
             let response = try await AnthropicService.freeSearch(conversationHistory: history)
 
             // Replace loading bubble
-            messages.removeLast()
+            if !messages.isEmpty { messages.removeLast() }
             let assistantMsg = ChatMessage(role: "assistant", content: response)
             messages.append(assistantMsg)
 
             let item = HistoryItem(type: "search", query: trimmed, resultJSON: response)
             saveHistory(item)
         } catch {
-            messages.removeLast()
+            if !messages.isEmpty { messages.removeLast() }
             toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
         }
 
