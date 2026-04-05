@@ -492,7 +492,7 @@ struct BattleJudgeView: View {
                     SectionHeader(title: "勝者")
                 }
                 Text(judge.winner)
-                    .font(.system(.title3, weight: .bold, design: .monospaced))
+                    .font(.system(size: 20, weight: .bold, design: .monospaced))
                     .foregroundColor(Color.gold)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
@@ -545,7 +545,7 @@ struct MCScoreCard: View {
             // Name + winner badge
             HStack(spacing: 6) {
                 Text(mc.name)
-                    .font(.system(.subheadline, weight: .bold, design: .monospaced))
+                    .font(.system(size: 15, weight: .bold, design: .monospaced))
                     .foregroundColor(isWinner ? Color.gold : .white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
