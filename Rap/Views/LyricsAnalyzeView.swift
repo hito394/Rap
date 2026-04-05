@@ -1,18 +1,33 @@
 import SwiftUI
 import SwiftData
 
+enum LyricsInputMode { case paste, song }
+
 @Observable
 class LyricsAnalyzeViewModel {
+    var inputMode: LyricsInputMode = .paste
     var lyricsText = ""
+    var songTitle = ""
+    var songArtist = ""
     var isLoading = false
     var result: LyricsAnalysis?
     var rawResult: String?
     var toastMessage: String?
 
     var charCount: Int { lyricsText.count }
-    var maxChars: Int { 500 }
+    var maxChars: Int { 1500 }
     var canAnalyze: Bool {
-        !lyricsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoading
+        switch inputMode {
+        case .paste: return !lyricsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoading
+        case .song: return !songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoading
+        }
+    }
+
+    var displayLyrics: String {
+        switch inputMode {
+        case .paste: return lyricsText
+        case .song: return result?.lyricsExcerpt ?? ""
+        }
     }
 
     var allSlangs: [SlangDefinition] {
@@ -20,21 +35,39 @@ class LyricsAnalyzeViewModel {
         return r.slangGlossary.map { $0.asDefinition() }
     }
 
-    func analyze(saveHistory: (HistoryItem) -> Void) async {
-        guard canAnalyze else { return }
-        isLoading = true
-        result = nil
-        rawResult = nil
+    func runAnalysis(saveHistory: (HistoryItem) -> Void) async {
+        switch inputMode {
+        case .paste: await analyze(saveHistory: saveHistory)
+        case .song: await analyzeSong(saveHistory: saveHistory)
+        }
+    }
 
+    private func analyze(saveHistory: (HistoryItem) -> Void) async {
+        guard canAnalyze else { return }
+        isLoading = true; result = nil; rawResult = nil
         do {
             let raw = try await AnthropicService.analyzeLyrics(lyricsText)
             rawResult = raw
             result = LyricsAnalysis.parse(from: raw)
-            saveHistory(HistoryItem(type: "lyrics", query: lyricsText, resultJSON: raw))
+            saveHistory(HistoryItem(type: "lyrics", query: String(lyricsText.prefix(80)), resultJSON: raw))
         } catch {
             toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
         }
+        isLoading = false
+    }
 
+    private func analyzeSong(saveHistory: (HistoryItem) -> Void) async {
+        guard canAnalyze else { return }
+        isLoading = true; result = nil; rawResult = nil
+        let query = songArtist.isEmpty ? songTitle : "\(songArtist) - \(songTitle)"
+        do {
+            let raw = try await AnthropicService.analyzeSong(title: songTitle, artist: songArtist)
+            rawResult = raw
+            result = LyricsAnalysis.parse(from: raw)
+            saveHistory(HistoryItem(type: "lyrics", query: query, resultJSON: raw))
+        } catch {
+            toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
+        }
         isLoading = false
     }
 }
@@ -93,58 +126,85 @@ struct LyricsAnalyzeView: View {
 
     // MARK: Input panel
     private var inputPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "歌詞を入力")
-            ZStack(alignment: .topLeading) {
-                TextEditor(text: $vm.lyricsText)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundColor(.white)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
-                    .frame(minHeight: inputCollapsed ? 0 : 140,
-                           maxHeight: inputCollapsed ? 0 : 200)
-                    .onChange(of: vm.lyricsText) { _, new in
-                        if new.count > vm.maxChars {
-                            vm.lyricsText = String(new.prefix(vm.maxChars))
-                        }
-                    }
-                if vm.lyricsText.isEmpty && !inputCollapsed {
-                    Text("ここに歌詞を貼り付け...")
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.gray.opacity(0.4))
-                        .padding(.top, 8).padding(.leading, 4)
-                        .allowsHitTesting(false)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            // Mode toggle
+            Picker("", selection: $vm.inputMode) {
+                Text("歌詞を貼り付け").tag(LyricsInputMode.paste)
+                Text("曲名で検索").tag(LyricsInputMode.song)
             }
-            .padding(12)
-            .cardStyle()
-            .animation(.easeInOut(duration: 0.25), value: inputCollapsed)
+            .pickerStyle(.segmented)
+            .onChange(of: vm.inputMode) { _, _ in
+                vm.result = nil; vm.rawResult = nil; inputCollapsed = false
+            }
 
-            HStack {
-                Text("\(vm.charCount) / \(vm.maxChars)")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(vm.charCount > vm.maxChars - 50 ? Color.gold : .gray)
-                Spacer()
-                if vm.result != nil {
-                    Button(inputCollapsed ? "入力を開く" : "入力を隠す") {
-                        withAnimation(.easeInOut(duration: 0.25)) { inputCollapsed.toggle() }
+            if vm.inputMode == .paste {
+                // Lyrics paste UI
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $vm.lyricsText)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .frame(minHeight: inputCollapsed ? 0 : 140,
+                               maxHeight: inputCollapsed ? 0 : 220)
+                        .onChange(of: vm.lyricsText) { _, new in
+                            if new.count > vm.maxChars {
+                                vm.lyricsText = String(new.prefix(vm.maxChars))
+                            }
+                        }
+                    if vm.lyricsText.isEmpty && !inputCollapsed {
+                        Text("ここに歌詞を貼り付け...")
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.gray.opacity(0.4))
+                            .padding(.top, 8).padding(.leading, 4)
+                            .allowsHitTesting(false)
                     }
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
                 }
-                if !vm.lyricsText.isEmpty {
-                    Button("クリア") {
-                        vm.lyricsText = ""; vm.result = nil; vm.rawResult = nil
-                        inputCollapsed = false
+                .padding(12)
+                .cardStyle()
+                .animation(.easeInOut(duration: 0.25), value: inputCollapsed)
+
+                HStack {
+                    Text("\(vm.charCount) / \(vm.maxChars)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(vm.charCount > vm.maxChars - 100 ? Color.gold : .gray)
+                    Spacer()
+                    if vm.result != nil {
+                        Button(inputCollapsed ? "入力を開く" : "入力を隠す") {
+                            withAnimation(.easeInOut(duration: 0.25)) { inputCollapsed.toggle() }
+                        }
+                        .font(.system(size: 12)).foregroundColor(.gray)
                     }
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
+                    if !vm.lyricsText.isEmpty {
+                        Button("クリア") {
+                            vm.lyricsText = ""; vm.result = nil; vm.rawResult = nil; inputCollapsed = false
+                        }
+                        .font(.system(size: 12)).foregroundColor(.gray)
+                    }
+                }
+            } else {
+                // Song search UI
+                VStack(spacing: 8) {
+                    InputField(placeholder: "曲名（例: HUMBLE.、C.R.E.A.M.）",
+                               text: $vm.songTitle, icon: "music.note")
+                    InputField(placeholder: "アーティスト（例: Kendrick Lamar）※省略可",
+                               text: $vm.songArtist, icon: "person.fill")
+                }
+                if vm.result != nil {
+                    HStack {
+                        Spacer()
+                        Button("クリア") {
+                            vm.songTitle = ""; vm.songArtist = ""
+                            vm.result = nil; vm.rawResult = nil; inputCollapsed = false
+                        }
+                        .font(.system(size: 12)).foregroundColor(.gray)
+                    }
                 }
             }
 
             Button("解析する") {
                 inputCollapsed = true
-                Task { await vm.analyze { context.insert($0) } }
+                Task { await vm.runAnalysis { context.insert($0) } }
             }
             .buttonStyle(PrimaryButtonStyle(isLoading: vm.isLoading))
             .disabled(!vm.canAnalyze)
@@ -218,7 +278,7 @@ struct LyricsAnalyzeView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 TappableLyricsView(
-                    text: vm.lyricsText,
+                    text: vm.displayLyrics,
                     slangDefinitions: vm.allSlangs,
                     onTap: { slang in
                         selectedSlang = slang
