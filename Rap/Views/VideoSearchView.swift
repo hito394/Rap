@@ -7,27 +7,55 @@ class VideoSearchViewModel {
     var isLoading = false
     var toastMessage: String?
     var hasSearched = false
-    var apiKeyMissing = false
+    private var debounceTask: Task<Void, Never>?
+
+    func scheduleSearch() {
+        debounceTask?.cancel()
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2 else {
+            if q.isEmpty { hasSearched = false; videos = [] }
+            return
+        }
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled else { return }
+            await search(query: q)
+        }
+    }
 
     func search(query: String? = nil) async {
         let q = (query ?? searchText).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return }
-
-        if YouTubeService.apiKey.isEmpty {
-            apiKeyMissing = true
-            return
-        }
-
         isLoading = true
         videos = []
         hasSearched = true
 
-        do {
-            videos = try await YouTubeService.search(query: q)
-        } catch {
-            toastMessage = (error as? YouTubeError)?.errorDescription ?? "接続を確認してください"
+        // 1. Try Mac server (yt-dlp, no API key needed)
+        if TranscriptionService.isConfigured,
+           let url = URL(string: "\(TranscriptionService.serverURL)/search"),
+           var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = [URLQueryItem(name: "q", value: q)]
+            if let searchURL = comps.url,
+               let (data, resp) = try? await URLSession.shared.data(from: searchURL),
+               let http = resp as? HTTPURLResponse, http.statusCode == 200,
+               let arr = try? JSONDecoder().decode([YouTubeVideo].self, from: data),
+               !arr.isEmpty {
+                videos = arr
+                isLoading = false
+                return
+            }
         }
 
+        // 2. YouTube Data API fallback
+        if !YouTubeService.apiKey.isEmpty {
+            do {
+                videos = try await YouTubeService.search(query: q)
+            } catch {
+                toastMessage = (error as? YouTubeError)?.errorDescription ?? "接続を確認してください"
+            }
+        } else {
+            toastMessage = "サーバー未接続・YouTube APIキー未設定\n右上 ⚙️ でMacサーバーを設定してください"
+        }
         isLoading = false
     }
 }
@@ -38,6 +66,7 @@ struct VideoSearchView: View {
     @FocusState private var searchFocused: Bool
     @State private var showURLInput = false
     @State private var manualURL = ""
+    @State private var showServerSettings = false
 
     private func extractVideoID(from text: String) -> String? {
         // https://www.youtube.com/watch?v=VIDEO_ID
@@ -90,10 +119,9 @@ struct VideoSearchView: View {
                         popularSection
                     }
 
-                    // API key warning
-                    if vm.apiKeyMissing {
-                        apiKeyWarning
-                            .padding(.horizontal, 20)
+                    // Server not configured hint (only before first search)
+                    if !vm.hasSearched && !TranscriptionService.isConfigured {
+                        serverHint.padding(.horizontal, 20)
                     }
 
                     // Loading
@@ -141,9 +169,18 @@ struct VideoSearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showServerSettings = true } label: {
+                        Image(systemName: "server.rack")
+                            .foregroundColor(TranscriptionService.isConfigured ? Color.gold : .gray)
+                    }
+                }
+            }
             .navigationDestination(item: $selectedVideo) { video in
                 VideoDetailView(video: video)
             }
+            .sheet(isPresented: $showServerSettings) { ServerSettingsSheet() }
         }
         .toast(message: $vm.toastMessage)
     }
@@ -198,24 +235,29 @@ struct VideoSearchView: View {
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
+                .foregroundColor(searchFocused ? Color.gold : .gray)
                 .font(.system(size: 15))
-            TextField("MCバトル、アーティスト名など...", text: $vm.searchText)
+            TextField("MCバトル、曲名、アーティスト名...", text: $vm.searchText)
                 .foregroundColor(.white)
                 .tint(Color.gold)
                 .focused($searchFocused)
                 .onSubmit { Task { await vm.search() } }
-            if !vm.searchText.isEmpty {
-                Button { vm.searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
+                .onChange(of: vm.searchText) { _, _ in vm.scheduleSearch() }
+            if vm.isLoading {
+                ProgressView().tint(Color.gold).scaleEffect(0.75)
+            } else if !vm.searchText.isEmpty {
+                Button { vm.searchText = ""; vm.videos = []; vm.hasSearched = false } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
                 }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .cardStyle()
+        .padding(.vertical, 13)
+        .background(Color.white.opacity(searchFocused ? 0.08 : 0.05))
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(searchFocused ? Color.gold.opacity(0.4) : Color.clear, lineWidth: 1))
         .padding(.horizontal, 20)
+        .animation(.easeInOut(duration: 0.15), value: searchFocused)
     }
 
     // MARK: Category chips
@@ -252,6 +294,37 @@ struct VideoSearchView: View {
             .padding(.horizontal, 20)
             .cardStyle()
         }
+    }
+
+    // MARK: Server hint
+    private var serverHint: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "server.rack")
+                .font(.system(size: 20))
+                .foregroundColor(.gray)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Macサーバーを設定するとAPI不要で検索・解析できます")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                Text("右上 ⚙️ からサーバーURLを入力してください")
+                    .font(.system(.caption))
+                    .foregroundColor(.gray)
+            }
+            Spacer()
+            Button { showServerSettings = true } label: {
+                Text("設定")
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundColor(Color(hex: "#0d0d0d"))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.gold)
+                    .cornerRadius(8)
+            }
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
     }
 
     // MARK: API key warning

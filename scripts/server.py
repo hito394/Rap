@@ -226,6 +226,57 @@ class AnalyzeRequest(BaseModel):
 def health():
     return {"status": "ok", "version": "1.0", "cache": len(_cache)}
 
+@app.get("/search")
+async def search(q: str, limit: int = 20):
+    """YouTube search via yt-dlp — no API key needed."""
+    if not q.strip():
+        return []
+    results = await asyncio.to_thread(_search_youtube, q.strip(), limit)
+    return results
+
+def _search_youtube(query: str, limit: int) -> list:
+    cmd = [
+        "yt-dlp",
+        f"ytsearch{limit}:{query}",
+        "--dump-json",
+        "--flat-playlist",
+        "--no-download",
+        "--no-warnings",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return []
+
+    videos = []
+    for line in result.stdout.strip().split("\n"):
+        if not line.strip():
+            continue
+        try:
+            data = json.loads(line)
+            vid_id = data.get("id", "")
+            if not vid_id:
+                continue
+            duration_sec = data.get("duration")
+            duration_str = ""
+            if isinstance(duration_sec, (int, float)) and duration_sec > 0:
+                m, s = divmod(int(duration_sec), 60)
+                h, m = divmod(m, 60)
+                duration_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+            videos.append({
+                "id": vid_id,
+                "title": data.get("title", ""),
+                "channelTitle": data.get("uploader") or data.get("channel") or "",
+                "thumbnailURL": f"https://img.youtube.com/vi/{vid_id}/mqdefault.jpg",
+                "thumbnailHighURL": f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg",
+                "description": data.get("description", ""),
+                "publishedAt": str(data.get("upload_date", "")),
+                "duration": duration_str,
+            })
+        except Exception:
+            continue
+    return videos
+
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
     video_id = extract_video_id(req.url)
