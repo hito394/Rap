@@ -1,12 +1,13 @@
 """
-Step 1: YouTubeからラップ解説動画のトランスクリプトを収集する
+Step 1: YouTubeからヒップホップ全般の解説動画トランスクリプトを収集する
 
 使い方:
-  python collect_training_data.py
+  python collect_training_data.py           # 全カテゴリ収集
+  python collect_training_data.py --audio   # Whisper用音声も収集
 
 出力:
   data/raw_transcripts/  ... 動画ごとのJSONファイル
-  data/raw_audio/        ... Whisperファインチューン用の音声（--audio フラグ時）
+  data/raw_audio/        ... Whisperファインチューン用の音声
 """
 
 import argparse
@@ -19,10 +20,10 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# 収集対象クエリ（解説・教育系コンテンツ）
+# 収集対象クエリ — ヒップホップ全4要素 + 周辺文化を網羅
 # ---------------------------------------------------------------------------
 SEARCH_QUERIES = [
-    # 日本語ラップ解説
+    # ── ラップ・MC技術（日本語） ──────────────────────────────────────────
     "日本語ラップ 解説 ライム",
     "MCバトル 解説 フロー",
     "日本語ラップ フロー 技術 解説",
@@ -31,11 +32,11 @@ SEARCH_QUERIES = [
     "MCバトル ダジャレ ライム 解説",
     "日本語ラップ 歌詞 解説",
     "フリースタイルラップ 解説",
-    # 英語ラップ解説（日本語解説）
-    "ケンドリックラマー 解説 日本語",
-    "エミネム ライム 解説",
-    "ヒップホップ 歌詞 和訳 解説",
-    # 英語ラップ技術解説
+    "ラップ パンチライン 解説",
+    "ラップ ダブルミーニング 解説",
+    "日本語ラップ 歴史 解説",
+
+    # ── ラップ・MC技術（英語コンテンツ） ─────────────────────────────────
     "rap techniques explained multisyllabic rhyme",
     "rap flow patterns explained",
     "kendrick lamar rhyme scheme breakdown",
@@ -44,10 +45,118 @@ SEARCH_QUERIES = [
     "hip hop lyricism analysis",
     "internal rhyme rap explained",
     "double entendre rap explained",
-    # MCバトル専門
+    "rap punchline breakdown analysis",
+    "storytelling in rap explained",
+    "rap cadence and delivery explained",
+
+    # ── MCバトル専門 ───────────────────────────────────────────────────────
     "mc battle lyric breakdown japanese",
     "UMB 解説 ライム",
     "KOK ラップバトル 解説",
+    "フリースタイルダンジョン 解説",
+    "高校生RAP選手権 解説",
+    "mc battle rap analysis breakdown",
+    "URL rap battle breakdown explained",
+    "rap battle judging criteria explained",
+
+    # ── 著名アーティスト解説（日本） ──────────────────────────────────────
+    "ケンドリックラマー 解説 日本語",
+    "エミネム ライム 解説",
+    "ヒップホップ 歌詞 和訳 解説",
+    "JAY-Z 歌詞 解説 日本語",
+    "Nas Illmatic 解説",
+    "Notorious BIG 解説 日本語",
+    "Tupac 歌詞 解説 日本語",
+    "ドレイク 解説 日本語",
+    "カニエウェスト 解説 日本語",
+    "漢 a.k.a. GAMI 解説",
+    "T-PABLOW 解説 ラップ",
+    "ZORN 歌詞 解説",
+    "¥ellow Bucks 解説",
+    "BIM 解説 ラップ",
+    "Awich 解説",
+
+    # ── ビートメイク・プロダクション ─────────────────────────────────────
+    "ビートメイク 解説 ヒップホップ",
+    "サンプリング 解説 ヒップホップ",
+    "boom bap ビート 解説",
+    "trap beat 作り方 解説",
+    "hip hop production techniques explained",
+    "sampling in hip hop explained",
+    "boom bap vs trap explained",
+    "lo-fi hip hop explained",
+    "MPC drum machine hip hop explained",
+    "808 bass hip hop explained",
+    "J Dilla beatmaking style explained",
+    "Madlib beatmaking explained",
+    "Dr Dre production style explained",
+    "Kanye West sampling explained",
+
+    # ── DJ・ターンテーブリズム ────────────────────────────────────────────
+    "DJ スクラッチ 解説 ヒップホップ",
+    "ターンテーブリズム 解説",
+    "hip hop dj techniques explained scratching",
+    "turntablism history explained",
+    "DJ battle explained hip hop",
+    "breakbeat DJing explained",
+    "DJ Kool Herc explained hip hop history",
+    "DJ Premier scratching explained",
+
+    # ── ブレイクダンス・Bボーイ文化 ───────────────────────────────────────
+    "ブレイクダンス 解説 歴史",
+    "Bボーイ 文化 解説",
+    "breakdancing history explained",
+    "bboy moves explained footwork",
+    "powermoves breakdance explained",
+    "hip hop dance styles explained",
+    "popping locking explained hip hop",
+    "breaking vs breakdancing explained",
+
+    # ── グラフィティ・ストリートアート ────────────────────────────────────
+    "グラフィティ 解説 ヒップホップ",
+    "ストリートアート 文化 解説",
+    "graffiti hip hop culture explained",
+    "graffiti styles explained wildstyle",
+    "graffiti tagging history hip hop",
+
+    # ── ヒップホップ歴史・文化 ────────────────────────────────────────────
+    "ヒップホップ 歴史 解説",
+    "ヒップホップ 4要素 解説",
+    "日本語ラップ 歴史 年表",
+    "ヒップホップ 誕生 ブロンクス 解説",
+    "hip hop history 1970s bronx explained",
+    "golden age hip hop explained",
+    "east coast west coast rap beef explained",
+    "gangsta rap history explained",
+    "conscious rap explained",
+    "trap music history explained",
+    "drill music explained",
+    "mumble rap explained",
+    "old school hip hop explained",
+    "hip hop culture four elements explained",
+    "hip hop fashion history explained streetwear",
+
+    # ── 日本ヒップホップシーン ───────────────────────────────────────────
+    "日本語ラップ シーン 解説 歴史",
+    "日本 ヒップホップ 文化 解説",
+    "BUDDHA BRAND 解説",
+    "RHYMESTER 解説 歴史",
+    "NITRO MICROPHONE UNDERGROUND 解説",
+    "キングギドラ 解説",
+    "日本 ストリートカルチャー ヒップホップ",
+
+    # ── アルバム・名盤解説 ────────────────────────────────────────────────
+    "Illmatic 解説 Nas 日本語",
+    "Ready to Die 解説 日本語",
+    "Me Against the World 解説",
+    "All Eyez on Me 解説",
+    "The Blueprint 解説 JAY-Z",
+    "The College Dropout 解説 Kanye",
+    "good kid maad city 解説 日本語",
+    "To Pimp a Butterfly 解説 日本語",
+    "Marshall Mathers LP 解説",
+    "Enter the Wu-Tang 解説",
+]
 ]
 
 OUTPUT_DIR = Path("data/raw_transcripts")
