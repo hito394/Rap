@@ -20,6 +20,8 @@ Pods/
 # Secrets - never commit API keys
 Secrets.xcconfig
 APIKeys.plist
+scripts/.env
+*.env
 
 # OS
 .DS_Store
