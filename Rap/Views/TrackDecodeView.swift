@@ -105,11 +105,23 @@ class TrackDetailViewModel {
         rawResult = nil
         stopPreview()
 
-        async let trackResult: String = AnthropicService.decodeTrack(title: titleText, artist: artistText)
+        // Fetch lyrics + iTunes in parallel
+        async let lrcResult = LrcLibService.search(title: titleText, artist: artistText)
         async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
 
+        let (lrcTrack, itunesTrack) = await (lrcResult, itunesResult)
+
         do {
-            let raw = try await trackResult
+            let raw: String
+            if let lrc = lrcTrack, let lyrics = lrc.syncedLyrics ?? lrc.plainLyrics, !lyrics.isEmpty {
+                // Use actual lyrics from LrcLib → Claude analyzes them
+                raw = try await AnthropicService.decodeTrackWithActualLyrics(
+                    title: titleText, artist: artistText, lyrics: lyrics
+                )
+            } else {
+                // Fallback: Claude knowledge-based
+                raw = try await AnthropicService.decodeTrack(title: titleText, artist: artistText)
+            }
             rawResult = raw
             result = TrackDecode.parse(from: raw)
             let query = "\(titleText) / \(artistText)"

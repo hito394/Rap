@@ -591,6 +591,23 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         return try await call(system: trackSystemPrompt, messages: messages)
     }
 
+    /// Decode track using actual lyrics from LrcLib. Returns same JSON format as decodeTrack.
+    static func decodeTrackWithActualLyrics(
+        title: String,
+        artist: String,
+        lyrics: String
+    ) async throws -> String {
+        let system = trackSystemPrompt + """
+
+【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
+歌詞は全ライン漏れなくkey_barsに含めること。
+"""
+        let messages: [[String: Any]] = [
+            ["role": "user", "content": "曲名: \(title)\nアーティスト: \(artist)\n\n【実際の歌詞】\n\(lyrics)"]
+        ]
+        return try await call(system: system, messages: messages)
+    }
+
     static func freeSearch(conversationHistory: [[String: Any]]) async throws -> String {
         return try await call(system: freeSystemPrompt, messages: conversationHistory)
     }
