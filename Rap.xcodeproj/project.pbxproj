@@ -33,6 +33,7 @@
 		AA1000018 /* RhymeHighlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000018 /* RhymeHighlightView.swift */; };
 		AA1000019 /* BattlePracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000019 /* BattlePracticeView.swift */; };
 		AA100001A /* iTunesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001A /* iTunesService.swift */; };
+		AA100001B /* BattleSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001B /* BattleSyncView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +63,7 @@
 		AB1000018 /* RhymeHighlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhymeHighlightView.swift; sourceTree = "<group>"; };
 		AB1000019 /* BattlePracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattlePracticeView.swift; sourceTree = "<group>"; };
 		AB100001A /* iTunesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iTunesService.swift; sourceTree = "<group>"; };
+		AB100001B /* BattleSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleSyncView.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -131,6 +133,7 @@
 				AB1000008 /* TrackDecodeView.swift */,
 				AB1000009 /* FreeSearchView.swift */,
 				AB1000019 /* BattlePracticeView.swift */,
+				AB100001B /* BattleSyncView.swift */,
 				AD1000006 /* Components */,
 			);
 			path = Views;
@@ -254,6 +257,7 @@
 				AA1000018 /* RhymeHighlightView.swift in Sources */,
 				AA1000019 /* BattlePracticeView.swift in Sources */,
 				AA100001A /* iTunesService.swift in Sources */,
+				AA100001B /* BattleSyncView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

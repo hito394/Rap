@@ -725,6 +725,29 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
             messages: conversationHistory
         )
     }
+
+    static func deepDiveLyric(lyric: String, explanation: String) async throws -> String {
+        let system = """
+あなたは伝説的なヒップホップライター兼批評家です。MCバトル・日本語ラップのラインを深く掘り下げてください。
+
+以下を含めて詳しく解説してください:
+1. 韻の構造（どの音が踏まれているか、母音/子音の一致）
+2. パンチラインの多重解釈（表面的意味と隠された意味）
+3. 相手へのディスの具体的内容（何を攻撃しているか）
+4. 文化的・音楽的リファレンス（サンプリング元、バトル史上の文脈）
+5. フロウとリズムパターンの特徴
+6. このラインがバトル全体に与えるインパクト
+7. 隠語・スラングの語源と本来の意味
+
+日本語で詳細かつ情熱的に解説してください。
+"""
+        return try await call(
+            system: system,
+            messages: [
+                ["role": "user", "content": "ライン:「\(lyric)」\n\n基本解説: \(explanation)\n\nこのラインをディープに解析してください。"]
+            ]
+        )
+    }
 }
 
 enum BattleStyle: String, CaseIterable, Identifiable {

@@ -34,6 +34,9 @@ class VideoDetailViewModel {
     var chatInput = ""
     var isChatLoading = false
     var selectedTab = 0
+    var videoCurrentTime: Double = 0
+    let battleSyncVM = BattleSyncViewModel()
+
     init(video: YouTubeVideo) {
         self.video = video
     }
@@ -126,19 +129,29 @@ struct VideoDetailView: View {
                     .padding(.vertical, 12)
 
                 // Tabs
-                let tabs = ["解説", "Q&A"]
+                let hasBattle = !vm.battleSyncVM.entries.isEmpty
+                let tabs = hasBattle ? ["解説", "Q&A", "リリック同期"] : ["解説", "Q&A"]
                 SegmentControl(tabs: tabs, selected: $vm.selectedTab)
                 Divider().background(Color.divider)
 
                 Group {
                     switch vm.selectedTab {
-                    case 0: explanationTab
-                    case 1: chatTab
-                    default: explanationTab
+                    case 0:
+                        explanationTab
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                    case 1:
+                        chatTab
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                    case 2:
+                        BattleSyncView(vm: vm.battleSyncVM) { _ in }
+                    default:
+                        explanationTab
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
 
                 Spacer().frame(height: 40)
             }
@@ -154,9 +167,12 @@ struct VideoDetailView: View {
     // MARK: Player
     private var playerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            YouTubePlayerView(videoID: vm.video.id)
-                .frame(height: UIScreen.main.bounds.width * 9 / 16)
-                .background(Color.black)
+            YouTubePlayerView(videoID: vm.video.id, onTimeUpdate: { t in
+                vm.videoCurrentTime = t
+                vm.battleSyncVM.updateTime(t)
+            })
+            .frame(height: UIScreen.main.bounds.width * 9 / 16)
+            .background(Color.black)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(vm.video.title)
