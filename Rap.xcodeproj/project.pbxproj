@@ -37,6 +37,7 @@
 		AA100001C /* CaptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001C /* CaptionService.swift */; };
 		AA100001D /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001D /* OpenAIService.swift */; };
 		AA100001E /* LrcLibService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001E /* LrcLibService.swift */; };
+		AA100001F /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001F /* TranscriptionService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 		AB100001C /* CaptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionService.swift; sourceTree = "<group>"; };
 		AB100001D /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
 		AB100001E /* LrcLibService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LrcLibService.swift; sourceTree = "<group>"; };
+		AB100001F /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -116,6 +118,7 @@
 				AB100001C /* CaptionService.swift */,
 				AB100001D /* OpenAIService.swift */,
 				AB100001E /* LrcLibService.swift */,
+				AB100001F /* TranscriptionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -270,6 +273,7 @@
 				AA100001C /* CaptionService.swift in Sources */,
 				AA100001D /* OpenAIService.swift in Sources */,
 				AA100001E /* LrcLibService.swift in Sources */,
+				AA100001F /* TranscriptionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

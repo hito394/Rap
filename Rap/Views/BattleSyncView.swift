@@ -28,10 +28,17 @@ extension [BattleLyricEntry] {
 // MARK: - Load state
 enum SyncLoadState: Equatable {
     case idle
-    case loading(String)       // message
-    case loadingProgress(Int, Int)  // done, total
+    case loading(String)
+    case loadingProgress(Int, Int)
     case loaded
     case failed(String)
+}
+
+// MARK: - Source of lyrics
+enum LyricSource: String {
+    case server = "Whisper解析"
+    case captions = "字幕AI解析"
+    case ai = "AI生成"
 }
 
 // MARK: - ViewModel
@@ -43,8 +50,10 @@ class BattleSyncViewModel {
     var deepDiveText = ""
     var isDeepDiving = false
     var showDeepDive = false
+    var showServerSettings = false
     var activeTab: SyncTab = .nowPlaying
     var loadState: SyncLoadState = .idle
+    var lyricSource: LyricSource = .ai
 
     enum SyncTab { case nowPlaying, allLyrics }
 
@@ -74,22 +83,39 @@ class BattleSyncViewModel {
 
     @MainActor
     private func autoLoad() async {
-        loadState = .loading("字幕を取得中...")
+        // 1. Mac server (Whisper = most accurate)
+        if TranscriptionService.isConfigured {
+            loadState = .loading("Macサーバーに接続中...")
+            let alive = await TranscriptionService.checkHealth()
+            if alive {
+                loadState = .loading("Whisperで文字起こし中...\n(数分かかる場合があります)")
+                do {
+                    entries = try await TranscriptionService.analyze(videoID: videoID)
+                    lyricSource = .server
+                    loadState = .loaded
+                    return
+                } catch {
+                    print("Server failed: \(error) — falling back to captions")
+                }
+            }
+        }
 
-        // 1. Try YouTube auto-captions
+        // 2. YouTube auto-captions
+        loadState = .loading("字幕を取得中...")
         let segments = await CaptionService.fetch(videoID: videoID)
 
         if !segments.isEmpty {
             loadState = .loadingProgress(0, segments.count)
             await analyzeWithBothAPIs(segments: segments)
+            lyricSource = .captions
         } else {
-            // 2. No captions → Claude generates from knowledge
+            // 3. Claude-only fallback
             loadState = .loading("AIがリリックを生成中...")
             do {
                 entries = try await AnthropicService.generateLyricAnalysis(
-                    videoTitle: title,
-                    channel: channel
+                    videoTitle: title, channel: channel
                 )
+                lyricSource = .ai
                 loadState = entries.isEmpty ? .failed("リリックを取得できませんでした") : .loaded
             } catch {
                 loadState = .failed("取得に失敗しました")
@@ -208,6 +234,9 @@ struct BattleSyncView: View {
             }
         }
         .onAppear { vm.startAutoLoad() }
+        .sheet(isPresented: $vm.showServerSettings) {
+            ServerSettingsSheet()
+        }
         .sheet(isPresented: $vm.showDeepDive) {
             if let entry = vm.selectedEntry {
                 LyricDeepDiveSheet(
@@ -225,11 +254,30 @@ struct BattleSyncView: View {
     // MARK: - Loaded content
     private var loadedContent: some View {
         VStack(spacing: 0) {
-            // Mini tab bar
+            // Top bar: tab buttons + source badge + settings
             HStack(spacing: 0) {
                 SyncTabButton(title: "NOW PLAYING", icon: "waveform", tab: .nowPlaying, selected: $vm.activeTab)
                 SyncTabButton(title: "全ライン", icon: "list.bullet", tab: .allLyrics, selected: $vm.activeTab)
+
+                // Source badge
+                Text(vm.lyricSource.rawValue)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(vm.lyricSource == .server ? Color(hex: "#0d0d0d") : .gray)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(vm.lyricSource == .server ? Color.gold : Color.white.opacity(0.08))
+                    .cornerRadius(4)
+                    .padding(.horizontal, 6)
+
+                // Server settings button
+                Button { vm.showServerSettings = true } label: {
+                    Image(systemName: TranscriptionService.isConfigured ? "server.rack" : "server.rack")
+                        .font(.system(size: 14))
+                        .foregroundColor(TranscriptionService.isConfigured ? Color.gold : .gray)
+                        .padding(.trailing, 12)
+                }
+                .buttonStyle(.plain)
             }
+            .frame(height: 40)
             .background(Color(hex: "#111111"))
             .overlay(Divider().background(Color.divider), alignment: .bottom)
 
@@ -584,6 +632,111 @@ struct LyricDeepDiveSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("閉じる", action: onClose).foregroundColor(Color.gold)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Server settings sheet
+struct ServerSettingsSheet: View {
+    @State private var urlText = TranscriptionService.serverURL
+    @State private var isChecking = false
+    @State private var status: String? = nil
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("MacでサーバーをONにしてから、表示されたIPアドレスを入力してください。")
+                            .font(.system(.caption))
+                            .foregroundColor(.gray)
+
+                        HStack {
+                            TextField("http://192.168.x.x:8765", text: $urlText)
+                                .font(.system(.body, design: .monospaced))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .foregroundColor(.white)
+                            Button {
+                                urlText = ""
+                                status = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
+                            }
+                            .buttonStyle(.plain)
+                            .opacity(urlText.isEmpty ? 0 : 1)
+                        }
+                        .padding(10)
+                        .background(Color.white.opacity(0.06))
+                        .cornerRadius(8)
+
+                        if let s = status {
+                            Label(s, systemImage: s.contains("✅") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundColor(s.contains("✅") ? .green : .red)
+                        }
+                    }
+                } header: {
+                    Text("MacサーバーURL")
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("起動コマンド (Macのターミナル):")
+                            .font(.system(.caption))
+                            .foregroundColor(.gray)
+                        Text("cd ~/Rap/scripts\npip install -r requirements.txt\npython server.py")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Color.gold)
+                            .padding(8)
+                            .background(Color.black)
+                            .cornerRadius(6)
+                    }
+                } header: {
+                    Text("サーバーの起動方法")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
+            .navigationTitle("🖥️ Macサーバー設定")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.appBackground, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("キャンセル") { dismiss() }.foregroundColor(.gray)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 12) {
+                        Button {
+                            Task {
+                                isChecking = true
+                                status = nil
+                                TranscriptionService.serverURL = urlText
+                                let ok = await TranscriptionService.checkHealth()
+                                status = ok ? "✅ 接続成功！" : "❌ 接続できませんでした"
+                                isChecking = false
+                            }
+                        } label: {
+                            if isChecking {
+                                ProgressView().tint(Color.gold).scaleEffect(0.8)
+                            } else {
+                                Text("テスト").foregroundColor(Color.gold)
+                            }
+                        }
+                        .disabled(urlText.isEmpty || isChecking)
+
+                        Button("保存") {
+                            TranscriptionService.serverURL = urlText
+                            dismiss()
+                        }
+                        .foregroundColor(Color.gold)
+                        .fontWeight(.bold)
+                    }
                 }
             }
         }
