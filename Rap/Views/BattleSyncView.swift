@@ -647,62 +647,87 @@ struct ServerSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // URL input section
                     VStack(alignment: .leading, spacing: 10) {
+                        Text("MacサーバーURL")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundColor(Color.gold)
+                            .padding(.horizontal, 4)
+
                         Text("MacでサーバーをONにしてから、表示されたIPアドレスを入力してください。")
                             .font(.system(.caption))
                             .foregroundColor(.gray)
+                            .padding(.horizontal, 4)
 
-                        HStack {
+                        HStack(spacing: 8) {
                             TextField("http://192.168.x.x:8765", text: $urlText)
                                 .font(.system(.body, design: .monospaced))
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
                                 .foregroundColor(.white)
-                            Button {
-                                urlText = ""
-                                status = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.gray)
+                                .tint(Color.gold)
+                                .padding(12)
+                                .background(Color.white.opacity(0.08))
+                                .cornerRadius(10)
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.gold.opacity(0.3), lineWidth: 1))
+
+                            if !urlText.isEmpty {
+                                Button {
+                                    urlText = ""
+                                    status = nil
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 18))
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
-                            .opacity(urlText.isEmpty ? 0 : 1)
                         }
-                        .padding(10)
-                        .background(Color.white.opacity(0.06))
-                        .cornerRadius(8)
 
                         if let s = status {
                             Label(s, systemImage: s.contains("✅") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                                 .font(.system(.caption, weight: .semibold))
                                 .foregroundColor(s.contains("✅") ? .green : .red)
+                                .padding(.horizontal, 4)
                         }
                     }
-                } header: {
-                    Text("MacサーバーURL")
-                }
+                    .padding(16)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1))
 
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
+                    // Startup instructions section
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("サーバーの起動方法")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundColor(Color.gold)
+
                         Text("起動コマンド (Macのターミナル):")
                             .font(.system(.caption))
                             .foregroundColor(.gray)
+
                         Text("cd ~/Rap/scripts\npip install -r requirements.txt\npython server.py")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(Color.gold)
-                            .padding(8)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.black)
-                            .cornerRadius(6)
+                            .cornerRadius(8)
                     }
-                } header: {
-                    Text("サーバーの起動方法")
+                    .padding(16)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1))
                 }
+                .padding(20)
             }
-            .scrollContentBackground(.hidden)
             .background(Color.appBackground)
-            .navigationTitle("🖥️ Macサーバー設定")
+            .navigationTitle("Macサーバー設定")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -736,6 +761,7 @@ struct ServerSettingsSheet: View {
                         }
                         .foregroundColor(Color.gold)
                         .fontWeight(.bold)
+                        .disabled(urlText.isEmpty)
                     }
                 }
             }
