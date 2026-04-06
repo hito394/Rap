@@ -35,10 +35,15 @@ class VideoDetailViewModel {
     var isChatLoading = false
     var selectedTab = 0
     var videoCurrentTime: Double = 0
-    let battleSyncVM = BattleSyncViewModel()
+    var battleSyncVM: BattleSyncViewModel
 
     init(video: YouTubeVideo) {
         self.video = video
+        self.battleSyncVM = BattleSyncViewModel(
+            videoID: video.id,
+            title: video.title,
+            channel: video.channelTitle
+        )
     }
 
     func explain() async {
@@ -129,8 +134,7 @@ struct VideoDetailView: View {
                     .padding(.vertical, 12)
 
                 // Tabs
-                let hasBattle = !vm.battleSyncVM.entries.isEmpty
-                let tabs = hasBattle ? ["解説", "Q&A", "リリック同期"] : ["解説", "Q&A"]
+                let tabs = ["解説", "Q&A", "リリック同期"]
                 SegmentControl(tabs: tabs, selected: $vm.selectedTab)
                 Divider().background(Color.divider)
 
@@ -145,7 +149,7 @@ struct VideoDetailView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 14)
                     case 2:
-                        BattleSyncView(vm: vm.battleSyncVM) { _ in }
+                        BattleSyncView(vm: vm.battleSyncVM)
                     default:
                         explanationTab
                             .padding(.horizontal, 20)

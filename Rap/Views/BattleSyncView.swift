@@ -8,7 +8,8 @@ struct BattleLyricEntry: Codable, Identifiable {
     let lyric: String
     let explanation: String
 
-    static func load(named filename: String = "battle") -> [BattleLyricEntry] {
+    /// Load pre-analyzed battle.json from Bundle (optional shortcut)
+    static func loadBundled(named filename: String = "battle") -> [BattleLyricEntry] {
         guard let url = Bundle.main.url(forResource: filename, withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let entries = try? JSONDecoder().decode([BattleLyricEntry].self, from: data)
@@ -23,6 +24,15 @@ extension [BattleLyricEntry] {
     }
 }
 
+// MARK: - Load state
+enum SyncLoadState: Equatable {
+    case idle
+    case loading(String)       // message
+    case loadingProgress(Int, Int)  // done, total
+    case loaded
+    case failed(String)
+}
+
 // MARK: - ViewModel
 @Observable
 class BattleSyncViewModel {
@@ -33,13 +43,79 @@ class BattleSyncViewModel {
     var isDeepDiving = false
     var showDeepDive = false
     var activeTab: SyncTab = .nowPlaying
+    var loadState: SyncLoadState = .idle
 
     enum SyncTab { case nowPlaying, allLyrics }
 
-    init() {
-        entries = BattleLyricEntry.load()
+    private let videoID: String
+    private let title: String
+    private let channel: String
+
+    init(videoID: String, title: String, channel: String) {
+        self.videoID = videoID
+        self.title = title
+        self.channel = channel
+
+        // Use pre-bundled battle.json if available (instant)
+        let bundled = BattleLyricEntry.loadBundled()
+        if !bundled.isEmpty {
+            self.entries = bundled
+            self.loadState = .loaded
+        }
     }
 
+    // MARK: - Auto-load
+    func startAutoLoad() {
+        guard case .idle = loadState else { return }
+        guard entries.isEmpty else { return }  // already loaded from bundle
+        Task { await autoLoad() }
+    }
+
+    @MainActor
+    private func autoLoad() async {
+        loadState = .loading("字幕を取得中...")
+
+        // 1. Try YouTube auto-captions
+        let segments = await CaptionService.fetch(videoID: videoID)
+
+        if !segments.isEmpty {
+            do {
+                loadState = .loadingProgress(0, segments.count)
+                entries = try await AnthropicService.analyzeCaptions(
+                    segments: segments,
+                    videoTitle: title,
+                    channel: channel
+                ) { done, total in
+                    Task { @MainActor [weak self] in
+                        self?.loadState = .loadingProgress(done, total)
+                    }
+                }
+                loadState = .loaded
+            } catch {
+                loadState = .failed("解析に失敗しました")
+            }
+        } else {
+            // 2. Claude-only fallback (no captions → generate from knowledge)
+            loadState = .loading("AIがリリックを生成中...")
+            do {
+                entries = try await AnthropicService.generateLyricAnalysis(
+                    videoTitle: title,
+                    channel: channel
+                )
+                loadState = entries.isEmpty ? .failed("リリックを取得できませんでした") : .loaded
+            } catch {
+                loadState = .failed("取得に失敗しました: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func retry() {
+        loadState = .idle
+        entries = []
+        startAutoLoad()
+    }
+
+    // MARK: - Time sync
     func updateTime(_ time: Double) {
         let matched = entries.current(at: time)
         if matched?.id != currentEntry?.id {
@@ -47,19 +123,18 @@ class BattleSyncViewModel {
         }
     }
 
+    // MARK: - Deep dive
     func startDeepDive(for entry: BattleLyricEntry) {
         selectedEntry = entry
         deepDiveText = ""
         isDeepDiving = true
         showDeepDive = true
-
         Task { @MainActor in
             do {
-                let result = try await AnthropicService.deepDiveLyric(
+                deepDiveText = try await AnthropicService.deepDiveLyric(
                     lyric: entry.lyric,
                     explanation: entry.explanation
                 )
-                deepDiveText = result
             } catch {
                 deepDiveText = "エラー: \(error.localizedDescription)"
             }
@@ -80,21 +155,29 @@ struct BattleSyncView: View {
     var onSeek: ((Double) -> Void)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            if vm.entries.isEmpty {
-                emptyState
-            } else {
-                // Tab bar
-                syncTabBar
+        ZStack {
+            switch vm.loadState {
+            case .idle:
+                Color.clear.onAppear { vm.startAutoLoad() }
 
-                // Content
-                if vm.activeTab == .nowPlaying {
-                    nowPlayingTab
-                } else {
-                    allLyricsTab
-                }
+            case .loading(let msg):
+                LoadingStateView(message: msg, progress: nil)
+
+            case .loadingProgress(let done, let total):
+                LoadingStateView(
+                    message: "AIが解析中...",
+                    progress: total > 0 ? Double(done) / Double(total) : nil,
+                    detail: "\(done) / \(total) ライン"
+                )
+
+            case .loaded:
+                loadedContent
+
+            case .failed(let msg):
+                FailedStateView(message: msg, onRetry: { vm.retry() })
             }
         }
+        .onAppear { vm.startAutoLoad() }
         .sheet(isPresented: $vm.showDeepDive) {
             if let entry = vm.selectedEntry {
                 LyricDeepDiveSheet(
@@ -109,32 +192,23 @@ struct BattleSyncView: View {
         }
     }
 
-    // MARK: - Empty state
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "waveform.slash")
-                .font(.system(size: 36, weight: .ultraLight))
-                .foregroundColor(Color.gold.opacity(0.4))
-            Text("battle.json が見つかりません")
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundColor(.white)
-            Text("analyze_battle.py で解析後、\nbattle.json をアプリに追加してください")
-                .font(.system(.caption))
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-    }
+    // MARK: - Loaded content
+    private var loadedContent: some View {
+        VStack(spacing: 0) {
+            // Mini tab bar
+            HStack(spacing: 0) {
+                SyncTabButton(title: "NOW PLAYING", icon: "waveform", tab: .nowPlaying, selected: $vm.activeTab)
+                SyncTabButton(title: "全ライン", icon: "list.bullet", tab: .allLyrics, selected: $vm.activeTab)
+            }
+            .background(Color(hex: "#111111"))
+            .overlay(Divider().background(Color.divider), alignment: .bottom)
 
-    // MARK: - Tab bar
-    private var syncTabBar: some View {
-        HStack(spacing: 0) {
-            SyncTabButton(title: "NOW PLAYING", icon: "waveform", tab: .nowPlaying, selected: $vm.activeTab)
-            SyncTabButton(title: "全ライン", icon: "list.bullet", tab: .allLyrics, selected: $vm.activeTab)
+            if vm.activeTab == .nowPlaying {
+                nowPlayingTab
+            } else {
+                allLyricsTab
+            }
         }
-        .background(Color(hex: "#111111"))
-        .overlay(Divider().background(Color.divider), alignment: .bottom)
     }
 
     // MARK: - Now Playing tab
@@ -151,8 +225,6 @@ struct BattleSyncView: View {
                 } else {
                     waitingCard
                 }
-
-                Spacer().frame(height: 20)
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -165,9 +237,10 @@ struct BattleSyncView: View {
             Image(systemName: "play.circle")
                 .font(.system(size: 28, weight: .ultraLight))
                 .foregroundColor(Color.gold.opacity(0.5))
-            Text("再生するとリリックが同期されます")
+            Text("動画を再生するとリリックが同期されます")
                 .font(.system(.caption))
                 .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(28)
@@ -202,6 +275,68 @@ struct BattleSyncView: View {
     }
 }
 
+// MARK: - Loading state view
+private struct LoadingStateView: View {
+    let message: String
+    let progress: Double?
+    var detail: String? = nil
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if let p = progress {
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.08), lineWidth: 3)
+                    Circle()
+                        .trim(from: 0, to: p)
+                        .stroke(Color.gold, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 0.3), value: p)
+                }
+                .frame(width: 44, height: 44)
+            } else {
+                ProgressView().tint(Color.gold).scaleEffect(1.2)
+            }
+            VStack(spacing: 4) {
+                Text(message)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundColor(.white)
+                if let d = detail {
+                    Text(d).font(.system(.caption, design: .monospaced)).foregroundColor(.gray)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+}
+
+// MARK: - Failed state view
+private struct FailedStateView: View {
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28, weight: .ultraLight))
+                .foregroundColor(.gray)
+            Text(message)
+                .font(.system(.caption))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+            Button("再試行", action: onRetry)
+                .font(.system(.caption, weight: .semibold))
+                .foregroundColor(Color.gold)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.gold.opacity(0.4)))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 50)
+    }
+}
+
 // MARK: - Active lyric card
 private struct ActiveLyricCard: View {
     let entry: BattleLyricEntry
@@ -209,7 +344,6 @@ private struct ActiveLyricCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
             HStack {
                 Label(formatTime(entry.start), systemImage: "clock")
                     .font(.system(size: 11, design: .monospaced))
@@ -229,12 +363,8 @@ private struct ActiveLyricCard: View {
             .padding(.horizontal, 14)
             .padding(.top, 14)
 
-            // Lyric
             HStack(alignment: .top, spacing: 10) {
-                Rectangle()
-                    .fill(Color.gold)
-                    .frame(width: 3)
-                    .cornerRadius(2)
+                Rectangle().fill(Color.gold).frame(width: 3).cornerRadius(2)
                 Text(entry.lyric)
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.white)
@@ -244,7 +374,6 @@ private struct ActiveLyricCard: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
 
-            // Explanation
             Text(entry.explanation)
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.65))
@@ -257,13 +386,9 @@ private struct ActiveLyricCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.gold.opacity(0.25), lineWidth: 1))
         .shadow(color: Color.gold.opacity(0.06), radius: 12)
     }
-
-    private func formatTime(_ t: Double) -> String {
-        String(format: "%d:%02d", Int(t) / 60, Int(t) % 60)
-    }
 }
 
-// MARK: - Lyric row (all lyrics tab)
+// MARK: - Lyric row
 private struct LyricRow: View {
     let entry: BattleLyricEntry
     let isActive: Bool
@@ -313,17 +438,10 @@ private struct LyricRow: View {
             .padding(.vertical, 8)
             .background(isActive ? Color.gold.opacity(0.05) : Color.clear)
             .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isActive ? Color.gold.opacity(0.2) : Color.clear, lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(isActive ? Color.gold.opacity(0.2) : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isActive)
-    }
-
-    private func formatTime(_ t: Double) -> String {
-        String(format: "%d:%02d", Int(t) / 60, Int(t) % 60)
     }
 }
 
@@ -333,7 +451,6 @@ private struct SyncTabButton: View {
     let icon: String
     let tab: BattleSyncViewModel.SyncTab
     @Binding var selected: BattleSyncViewModel.SyncTab
-
     var isSelected: Bool { selected == tab }
 
     var body: some View {
@@ -345,12 +462,7 @@ private struct SyncTabButton: View {
             .foregroundColor(isSelected ? Color.gold : .gray)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .overlay(
-                Rectangle()
-                    .fill(isSelected ? Color.gold : Color.clear)
-                    .frame(height: 2),
-                alignment: .bottom
-            )
+            .overlay(Rectangle().fill(isSelected ? Color.gold : Color.clear).frame(height: 2), alignment: .bottom)
         }
         .buttonStyle(.plain)
     }
@@ -367,16 +479,12 @@ struct LyricDeepDiveSheet: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Lyric
                     VStack(alignment: .leading, spacing: 8) {
                         Label("解析ライン", systemImage: "text.quote")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundColor(Color.gold)
                         HStack(alignment: .top, spacing: 10) {
-                            Rectangle()
-                                .fill(Color.gold)
-                                .frame(width: 3)
-                                .cornerRadius(2)
+                            Rectangle().fill(Color.gold).frame(width: 3).cornerRadius(2)
                             Text(entry.lyric)
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
@@ -386,23 +494,21 @@ struct LyricDeepDiveSheet: View {
                     .padding(14)
                     .cardStyle(padding: 0)
 
-                    // Analysis
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Label("ディープダイブ解析", systemImage: "sparkles")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(Color.gold)
                             Spacer()
-                            if isLoading {
-                                ProgressView().tint(Color.gold).scaleEffect(0.7)
-                            }
+                            if isLoading { ProgressView().tint(Color.gold).scaleEffect(0.7) }
                         }
                         if text.isEmpty && isLoading {
-                            ForEach(0..<4, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.white.opacity(0.06))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 12)
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(0..<4, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.white.opacity(0.06))
+                                        .frame(maxWidth: .infinity).frame(height: 12)
+                                }
                             }
                         } else {
                             Text(text)

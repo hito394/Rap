@@ -726,6 +726,108 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         )
     }
 
+    /// Explain caption segments in batch. Returns parsed lyric entries.
+    static func analyzeCaptions(
+        segments: [CaptionSegment],
+        videoTitle: String,
+        channel: String,
+        onProgress: @escaping (Int, Int) -> Void
+    ) async throws -> [BattleLyricEntry] {
+        let batchSize = 40
+        var results: [BattleLyricEntry] = []
+        let batches = stride(from: 0, to: segments.count, by: batchSize).map {
+            Array(segments[$0..<min($0 + batchSize, segments.count)])
+        }
+
+        let system = """
+あなたは伝説的なヒップホップライター兼批評家です。
+動画: 「\(videoTitle)」 / チャンネル: \(channel)
+
+以下のセグメント一覧をJSON形式のみで返してください:
+{
+  "entries": [
+    {
+      "index": 1,
+      "explanation": "1〜2文の解説。韻・パンチライン・ディス対象・隠語を含む。隠語は括弧内に意味補足。"
+    }
+  ]
+}
+解説は初心者でも分かりやすく、でも深い洞察を含めること。
+"""
+
+        for (batchIdx, batch) in batches.enumerated() {
+            let numbered = batch.enumerated().map { i, seg in
+                "[\(results.count + i + 1)] (\(String(format:"%.1f", seg.start))s) \(seg.text)"
+            }.joined(separator: "\n")
+
+            let resp = try await call(system: system, messages: [
+                ["role": "user", "content": "以下\(batch.count)件を解説:\n\(numbered)"]
+            ])
+
+            // Parse JSON response
+            let cleaned = resp.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let data = cleaned.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let entries = json["entries"] as? [[String: Any]] {
+                let expMap = Dictionary(uniqueKeysWithValues: entries.compactMap { e -> (Int, String)? in
+                    guard let idx = e["index"] as? Int, let exp = e["explanation"] as? String else { return nil }
+                    return (idx, exp)
+                })
+                for (i, seg) in batch.enumerated() {
+                    let globalIdx = results.count + i + 1
+                    results.append(BattleLyricEntry(
+                        start: seg.start, end: seg.end,
+                        lyric: seg.text,
+                        explanation: expMap[globalIdx] ?? ""
+                    ))
+                }
+            } else {
+                // Fallback: add segments without explanation
+                for seg in batch {
+                    results.append(BattleLyricEntry(start: seg.start, end: seg.end, lyric: seg.text, explanation: ""))
+                }
+            }
+
+            onProgress(min((batchIdx + 1) * batchSize, segments.count), segments.count)
+        }
+        return results
+    }
+
+    /// Claude-only analysis when no captions available. Generates lyrics + timestamps from knowledge.
+    static func generateLyricAnalysis(videoTitle: String, channel: String) async throws -> [BattleLyricEntry] {
+        let system = """
+あなたは伝説的なヒップホップライター兼批評家で、日本語ラップ・MCバトル史の最高権威です。
+
+以下のJSON形式のみで返してください（コードブロック不要）:
+[
+  {
+    "start": 5.0,
+    "end": 9.5,
+    "lyric": "バース/ラインの歌詞・セリフ",
+    "explanation": "1〜2文の解説。韻・パンチライン・ディス・隠語を含む"
+  }
+]
+
+- 知っている場合は実際のリリックを再現すること（[うろ覚え]を前置き可）
+- 知らない場合はアーティストのスタイルに沿った代表的なラインを推測で生成
+- タイムスタンプは動画の典型的な構成から推定
+- 最低20ライン以上を生成すること
+"""
+        let resp = try await call(system: system, messages: [
+            ["role": "user", "content": "動画:「\(videoTitle)」\nチャンネル: \(channel)\n\nこの動画のバース・リリックを時系列で解析してください。"]
+        ])
+
+        let cleaned = resp.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let data = cleaned.data(using: .utf8),
+              let arr = try? JSONDecoder().decode([BattleLyricEntry].self, from: data)
+        else { return [] }
+        return arr.sorted { $0.start < $1.start }
+    }
+
     static func deepDiveLyric(lyric: String, explanation: String) async throws -> String {
         let system = """
 あなたは伝説的なヒップホップライター兼批評家です。MCバトル・日本語ラップのラインを深く掘り下げてください。
