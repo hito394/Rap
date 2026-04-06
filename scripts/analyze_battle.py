@@ -8,6 +8,9 @@ Usage:
 Example:
   python analyze_battle.py 'https://youtu.be/3D6KUgNDn40' battle.json \
       --rapper1 'T-Pablow' --rapper2 'R-指定' --start 30
+
+Output format:
+  [{"start": float, "end": float, "lyric": str, "explanation": str}, ...]
 """
 
 import argparse
@@ -46,7 +49,6 @@ def download_audio(url: str, start: int = 0) -> str:
     ]
 
     if start > 0:
-        # ffmpeg に SS を渡して指定秒からトリム
         cmd += ["--postprocessor-args", f"ffmpeg:-ss {start}"]
 
     cmd.append(url)
@@ -59,7 +61,6 @@ def download_audio(url: str, start: int = 0) -> str:
 
     mp3 = os.path.join(tmpdir, "audio.mp3")
     if not os.path.exists(mp3):
-        # yt-dlp のバージョンによってファイル名が変わる場合
         files = list(Path(tmpdir).glob("*.mp3"))
         if not files:
             raise FileNotFoundError(f"MP3 not found in {tmpdir}")
@@ -70,8 +71,8 @@ def download_audio(url: str, start: int = 0) -> str:
 
 
 def transcribe(audio_path: str, client: OpenAI) -> list[dict]:
-    """Whisper API でセグメント単位の文字起こしを取得する。"""
-    print("🎙️  Transcribing with Whisper API...")
+    """Whisper API でセグメント + ワード単位の文字起こしを取得する。"""
+    print("🎙️  Transcribing with Whisper API (word-level timestamps)...")
 
     with open(audio_path, "rb") as f:
         response = client.audio.transcriptions.create(
@@ -79,58 +80,95 @@ def transcribe(audio_path: str, client: OpenAI) -> list[dict]:
             file=f,
             language="ja",
             response_format="verbose_json",
-            timestamp_granularities=["segment"],
+            timestamp_granularities=["word", "segment"],
         )
 
+    # Use segments for lyric grouping; use word timestamps for precise boundary
+    # Build a lookup: segment index → list of word timestamps
+    word_map: dict[int, list[dict]] = {}
+    if hasattr(response, "words") and response.words:
+        for word in response.words:
+            # Find which segment this word belongs to
+            for i, seg in enumerate(response.segments):
+                if float(seg.start) <= float(word.start) < float(seg.end) + 0.5:
+                    word_map.setdefault(i, []).append({
+                        "word": word.word,
+                        "start": round(float(word.start), 3),
+                        "end": round(float(word.end), 3),
+                    })
+                    break
+
     segments = []
-    for seg in response.segments:
+    for i, seg in enumerate(response.segments):
         text = seg.text.strip()
-        if text:
-            segments.append({
-                "start": round(float(seg.start), 2),
-                "end": round(float(seg.end), 2),
-                "text": text,
-            })
+        if not text:
+            continue
+
+        # Use first/last word timestamps if available for precision
+        words = word_map.get(i, [])
+        if words:
+            seg_start = round(float(words[0]["start"]), 2)
+            seg_end = round(float(words[-1]["end"]), 2)
+        else:
+            seg_start = round(float(seg.start), 2)
+            seg_end = round(float(seg.end), 2)
+
+        segments.append({
+            "start": seg_start,
+            "end": seg_end,
+            "text": text,
+            "words": words,
+        })
 
     print(f"✅ Got {len(segments)} segments from Whisper")
     return segments
 
 
-def analyze_segment(
-    seg: dict,
-    all_segments: list[dict],
+def batch_analyze(
+    segments: list[dict],
     rapper1: str,
     rapper2: str,
     client: OpenAI,
-) -> dict:
-    """GPT-4o で1セグメントの韻・パンチライン・文脈を分析する。"""
-    transcript_ctx = "\n".join(
-        [f"[{s['start']:.1f}s] {s['text']}" for s in all_segments[:30]]
+) -> list[dict]:
+    """
+    GPT-4o で全セグメントを一括分析。
+    伝説的なヒップホップライターとして韻構造・サンプリング・パンチラインを解説。
+    Returns: [{"start": float, "end": float, "lyric": str, "explanation": str}, ...]
+    """
+    # Build numbered transcript for GPT-4o
+    numbered = "\n".join(
+        [f"[{i+1}] ({seg['start']}s-{seg['end']}s) {seg['text']}" for i, seg in enumerate(segments)]
     )
 
-    system = f"""あなたは日本語MCバトル・ヒップホップの最高権威です。
+    system = f"""あなたは伝説的なヒップホップライターであり、MCバトル・日本語ラップの最高権威です。
+韻構造（母音韻・子音韻・内部韻・マルチシラブル韻）、サンプリング元、パンチラインの多重解釈、
+バトルの文脈とディス対象、スラング・隠語の意味、フロウとリズムパターンを熟知しています。
+
 バトル参加者: {rapper1} vs {rapper2}
 
-以下のJSONのみを返してください（余分なテキスト不要）:
+以下の形式のJSONのみを返してください（余分なテキスト不要）:
 {{
-  "rhyme_pattern": "韻の種類（母音韻/子音韻/内部韻/マルチシラブル韻/フリーフロウ等）",
-  "rhyme_words": ["踏んでいる言葉1", "言葉2"],
-  "rhyme_explanation": "なぜこれが韻を踏んでいるか（音韻的説明）",
-  "context": "バトル内での文脈・意図・誰への攻撃か・どんな状況か",
-  "sampling": "サンプリング・引用・アンサーラップがあれば記述、なければnull",
-  "difficulty": "easy/medium/hard（リリシズムの高度さ）",
-  "keywords": ["注目キーワード1", "キーワード2"],
-  "deep_dive_hint": "このラインをさらに深く掘り下げる切り口"
-}}"""
+  "entries": [
+    {{
+      "index": 1,
+      "explanation": "初心者でも理解できる1〜2文の解説。韻・パンチライン・ディスの意図・隠語をカバー。"
+    }},
+    ...
+  ]
+}}
 
-    user = f"""バトル全体の文字起こし（参考）:
-{transcript_ctx}
+解説の書き方:
+- 踏んでいる韻があれば「〇〇と△△で□音の韻」と具体的に
+- パンチラインは「〜という二重の意味を持つ」と多重解釈を
+- 隠語・スラングは括弧内に意味を補足（例: シャブ（覚醒剤））
+- 相手へのディスは誰への何の攻撃かを明示
+- サンプリング・引用元があれば言及"""
 
-分析対象:
-時間: {seg['start']}s〜{seg['end']}s
-テキスト: 「{seg['text']}」
+    user = f"""以下のMCバトル文字起こし全ライン（{len(segments)}件）を解説してください:
 
-このラインのJSON分析を返してください。"""
+{numbered}
+
+各ラインのindex番号に対応したexplanationを返してください。"""
 
     try:
         resp = client.chat.completions.create(
@@ -140,47 +178,54 @@ def analyze_segment(
                 {"role": "user", "content": user},
             ],
             response_format={"type": "json_object"},
-            max_tokens=400,
-            temperature=0.3,
+            max_tokens=4000,
+            temperature=0.4,
         )
-        return json.loads(resp.choices[0].message.content)
+        result = json.loads(resp.choices[0].message.content)
+        entries_map = {e["index"]: e["explanation"] for e in result.get("entries", [])}
     except Exception as e:
-        print(f"  ⚠️  Analysis failed: {e}")
-        return {
-            "rhyme_pattern": "不明",
-            "rhyme_words": [],
-            "rhyme_explanation": "",
-            "context": "",
-            "sampling": None,
-            "difficulty": "medium",
-            "keywords": [],
-            "deep_dive_hint": "",
-        }
+        print(f"  ⚠️  Batch analysis failed: {e}")
+        entries_map = {}
+
+    # Build final output
+    output = []
+    for i, seg in enumerate(segments):
+        explanation = entries_map.get(i + 1, "")
+        if not explanation:
+            # Fallback: single call for this segment
+            explanation = single_explain(seg, rapper1, rapper2, client)
+
+        output.append({
+            "start": seg["start"],
+            "end": seg["end"],
+            "lyric": seg["text"],
+            "explanation": explanation,
+        })
+
+    return output
 
 
-def add_explanation(entry: dict, all_entries: list[dict], rapper1: str, rapper2: str, client: OpenAI) -> str:
-    """初心者向けの短い解説文を GPT-4o で生成する。"""
-    ctx = "\n".join([f"[{e['start']}s] {e['lyric']}" for e in all_entries[:20]])
-
+def single_explain(seg: dict, rapper1: str, rapper2: str, client: OpenAI) -> str:
+    """単一セグメントのフォールバック解説。"""
     try:
         resp = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system",
-                    "content": f"日本語MCバトル解説者。{rapper1} vs {rapper2}のバトルを初心者向けに1〜2文で解説。",
+                    "content": f"伝説的なヒップホップライター。{rapper1} vs {rapper2}のバトルラインを初心者向けに1〜2文で解説。韻・パンチライン・隠語を含めること。",
                 },
                 {
                     "role": "user",
-                    "content": f"このラインを解説:\n「{entry['lyric']}」\n\n文脈:\n{ctx[:600]}",
+                    "content": f"「{seg['text']}」",
                 },
             ],
-            max_tokens=120,
-            temperature=0.5,
+            max_tokens=150,
+            temperature=0.4,
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
-        print(f"  ⚠️  Explanation failed: {e}")
+        print(f"  ⚠️  Single explain failed: {e}")
         return ""
 
 
@@ -209,38 +254,17 @@ def main():
     else:
         audio_path = download_audio(args.url, args.start)
 
-    # --- Step 2: Transcribe ---
+    # --- Step 2: Transcribe with word-level timestamps ---
     segments = transcribe(audio_path, client)
     if not segments:
         print("❌ 文字起こし結果が空です。音声ファイルを確認してください。")
         sys.exit(1)
 
-    # --- Step 3: Build initial entries ---
-    entries = [
-        {
-            "id": i + 1,
-            "start": seg["start"],
-            "end": seg["end"],
-            "lyric": seg["text"],
-            "explanation": "",
-            "analysis": None,
-        }
-        for i, seg in enumerate(segments)
-    ]
+    # --- Step 3: Batch analyze with GPT-4o ---
+    print(f"\n🔍 Analyzing {len(segments)} segments with GPT-4o (batch)...")
+    entries = batch_analyze(segments, args.rapper1, args.rapper2, client)
 
-    # --- Step 4: Analyze each segment ---
-    print(f"\n🔍 Analyzing {len(entries)} segments with GPT-4o...")
-    for i, (entry, seg) in enumerate(zip(entries, segments)):
-        print(f"  [{i+1}/{len(entries)}] {seg['text'][:40]}...")
-        entry["analysis"] = analyze_segment(seg, segments, args.rapper1, args.rapper2, client)
-
-    # --- Step 5: Add plain explanations ---
-    print("\n📝 Adding plain-language explanations...")
-    for i, entry in enumerate(entries):
-        print(f"  [{i+1}/{len(entries)}] ...")
-        entry["explanation"] = add_explanation(entry, entries, args.rapper1, args.rapper2, client)
-
-    # --- Step 6: Write output ---
+    # --- Step 4: Write output ---
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
@@ -248,7 +272,7 @@ def main():
 
     print(f"\n✅ 完了！ {len(entries)}件 → {output_path}")
     print("\nXcodeにコピーする場合:")
-    print(f"  cp {output_path} /Users/shimazakihitoshi/Rap/MCBattleApp/MCBattleApp/Resources/battle.json")
+    print(f"  cp {output_path} ~/Rap/MCBattleApp/MCBattleApp/Resources/battle.json")
 
 
 if __name__ == "__main__":

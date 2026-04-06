@@ -31,13 +31,42 @@ struct YouTubeService {
         Bundle.main.object(forInfoDictionaryKey: "YOUTUBE_API_KEY") as? String ?? ""
     }
 
+    /// Build an optimized search query.
+    /// For music queries, appends "Official Music Video OR Lyric Video OR MV" to surface official content first.
+    static func buildQuery(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Avoid double-appending if user already specified video type keywords
+        let lowerRaw = trimmed.lowercased()
+        let alreadySpecific = ["official", "lyric", "mv", "battle", "バトル", "cypher", "サイファー",
+                               "freestyle", "フリースタイル", "documentary"].contains(where: lowerRaw.contains)
+        if alreadySpecific { return trimmed }
+        return "\(trimmed) Official Music Video OR Lyric Video"
+    }
+
+    /// Similarity score between two strings (Jaccard on word tokens, 0.0–1.0).
+    static func similarity(_ a: String, _ b: String) -> Double {
+        let tokenize: (String) -> Set<String> = { str in
+            Set(str.lowercased()
+                .components(separatedBy: .alphanumerics.inverted)
+                .filter { $0.count >= 2 })
+        }
+        let ta = tokenize(a)
+        let tb = tokenize(b)
+        guard !ta.isEmpty || !tb.isEmpty else { return 1.0 }
+        let intersection = ta.intersection(tb).count
+        let union = ta.union(tb).count
+        return Double(intersection) / Double(union)
+    }
+
     static func search(query: String, maxResults: Int = 15) async throws -> [YouTubeVideo] {
         guard !apiKey.isEmpty else { throw YouTubeError.invalidAPIKey }
+
+        let optimizedQuery = buildQuery(query)
 
         var components = URLComponents(string: searchEndpoint)!
         components.queryItems = [
             URLQueryItem(name: "part", value: "snippet"),
-            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "q", value: optimizedQuery),
             URLQueryItem(name: "type", value: "video"),
             URLQueryItem(name: "maxResults", value: "\(maxResults)"),
             URLQueryItem(name: "key", value: apiKey),
@@ -48,7 +77,6 @@ struct YouTubeService {
         guard let url = components.url else { throw YouTubeError.decodingError }
 
         var request = URLRequest(url: url)
-        // Required when API key has iOS app restriction
         if let bundleID = Bundle.main.bundleIdentifier {
             request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
         }
@@ -64,20 +92,18 @@ struct YouTubeService {
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             let code = httpResponse.statusCode
-            // If 403 with iOS bundle header, retry without header (in case no restriction is set)
             if code == 403 && request.value(forHTTPHeaderField: "X-Ios-Bundle-Identifier") != nil {
                 var retryRequest = URLRequest(url: request.url!)
                 retryRequest.cachePolicy = .reloadIgnoringLocalCacheData
                 if let (retryData, retryResponse) = try? await URLSession.shared.data(for: retryRequest),
                    let retryHTTP = retryResponse as? HTTPURLResponse,
                    (200...299).contains(retryHTTP.statusCode) {
-                    // retry succeeded without header
                     guard let result = try? JSONDecoder().decode(YouTubeSearchResponse.self, from: retryData) else {
                         throw YouTubeError.decodingError
                     }
                     let videos = result.items.compactMap { $0.toVideo() }
                     guard !videos.isEmpty else { throw YouTubeError.noResults }
-                    return videos
+                    return filterByRelevance(videos, query: query)
                 }
             }
             throw YouTubeError.httpError(code)
@@ -89,6 +115,19 @@ struct YouTubeService {
 
         let videos = result.items.compactMap { $0.toVideo() }
         guard !videos.isEmpty else { throw YouTubeError.noResults }
-        return videos
+        return filterByRelevance(videos, query: query)
+    }
+
+    /// Filter out clearly irrelevant results using title similarity.
+    /// Keeps results with similarity ≥ 0.1 (very permissive), sorted by relevance.
+    private static func filterByRelevance(_ videos: [YouTubeVideo], query: String) -> [YouTubeVideo] {
+        let threshold = 0.08
+        let scored = videos.map { video -> (YouTubeVideo, Double) in
+            let score = similarity(video.title, query)
+            return (video, score)
+        }
+        let filtered = scored.filter { $0.1 >= threshold }
+        if filtered.isEmpty { return videos } // fallback: return all if nothing passes
+        return filtered.sorted { $0.1 > $1.1 }.map { $0.0 }
     }
 }

@@ -1,0 +1,43 @@
+name: MCBattleApp
+options:
+  bundleIdPrefix: com.hitoshi
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+configFiles:
+  Debug: MCBattleApp/Resources/Secrets.xcconfig
+  Release: MCBattleApp/Resources/Secrets.xcconfig
+
+targets:
+  MCBattleApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: MCBattleApp
+        excludes:
+          - Resources/Secrets.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hitoshi.MCBattleApp
+        SWIFT_VERSION: 5.9
+        INFOPLIST_FILE: MCBattleApp/Resources/Info.plist
+        DEVELOPMENT_TEAM: ""
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+    info:
+      path: MCBattleApp/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: MCBattle
+        CFBundleName: MCBattleApp
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UIBackgroundModes:
+          - audio
