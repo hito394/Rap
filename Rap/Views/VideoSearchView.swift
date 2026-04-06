@@ -68,8 +68,8 @@ struct VideoSearchView: View {
             id: id,
             title: "YouTube動画",
             channelTitle: "",
-            description: "",
             thumbnailURL: "https://img.youtube.com/vi/\(id)/hqdefault.jpg",
+            description: "",
             publishedAt: ""
         )
         selectedVideo = video
