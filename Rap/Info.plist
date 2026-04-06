@@ -50,5 +50,7 @@
 	<!-- YouTube Data API v3 key from Google Cloud Console -->
 	<key>YOUTUBE_API_KEY</key>
 	<string>$(YOUTUBE_API_KEY)</string>
+	<key>OPENAI_API_KEY</key>
+	<string>$(OPENAI_API_KEY)</string>
 </dict>
 </plist>

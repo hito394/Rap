@@ -6,7 +6,8 @@ struct BattleLyricEntry: Codable, Identifiable {
     let start: Double
     let end: Double
     let lyric: String
-    let explanation: String
+    let explanation: String   // Claude: 意味・文脈・ディス内容
+    var technique: String?    // GPT-4o: 韻構造・フロウ・パンチライン技法
 
     /// Load pre-analyzed battle.json from Bundle (optional shortcut)
     static func loadBundled(named filename: String = "battle") -> [BattleLyricEntry] {
@@ -79,23 +80,10 @@ class BattleSyncViewModel {
         let segments = await CaptionService.fetch(videoID: videoID)
 
         if !segments.isEmpty {
-            do {
-                loadState = .loadingProgress(0, segments.count)
-                entries = try await AnthropicService.analyzeCaptions(
-                    segments: segments,
-                    videoTitle: title,
-                    channel: channel
-                ) { done, total in
-                    Task { @MainActor [weak self] in
-                        self?.loadState = .loadingProgress(done, total)
-                    }
-                }
-                loadState = .loaded
-            } catch {
-                loadState = .failed("解析に失敗しました")
-            }
+            loadState = .loadingProgress(0, segments.count)
+            await analyzeWithBothAPIs(segments: segments)
         } else {
-            // 2. Claude-only fallback (no captions → generate from knowledge)
+            // 2. No captions → Claude generates from knowledge
             loadState = .loading("AIがリリックを生成中...")
             do {
                 entries = try await AnthropicService.generateLyricAnalysis(
@@ -104,8 +92,50 @@ class BattleSyncViewModel {
                 )
                 loadState = entries.isEmpty ? .failed("リリックを取得できませんでした") : .loaded
             } catch {
-                loadState = .failed("取得に失敗しました: \(error.localizedDescription)")
+                loadState = .failed("取得に失敗しました")
             }
+        }
+    }
+
+    /// Run Claude (意味・文脈) + GPT-4o (韻・技法) in parallel, then merge.
+    @MainActor
+    private func analyzeWithBothAPIs(segments: [CaptionSegment]) async {
+        // Run both in parallel; GPT-4o is optional (if key missing → skip)
+        async let claudeTask = AnthropicService.analyzeCaptions(
+            segments: segments,
+            videoTitle: title,
+            channel: channel
+        ) { [weak self] done, total in
+            Task { @MainActor [weak self] in
+                self?.loadState = .loadingProgress(done, total)
+            }
+        }
+
+        async let gptTask: [Int: String]? = OpenAIService.isAvailable
+            ? (try? await OpenAIService.analyzeTechnique(
+                segments: segments,
+                videoTitle: title,
+                channel: channel,
+                onProgress: { _, _ in }
+              ))
+            : nil
+
+        do {
+            let (claudeEntries, techMap) = try await (claudeTask, gptTask)
+
+            // Merge GPT-4o technique into Claude entries
+            if let techMap {
+                entries = claudeEntries.enumerated().map { i, entry in
+                    var e = entry
+                    e.technique = techMap[i + 1]
+                    return e
+                }
+            } else {
+                entries = claudeEntries
+            }
+            loadState = .loaded
+        } catch {
+            loadState = .failed("解析に失敗しました")
         }
     }
 
@@ -374,12 +404,34 @@ private struct ActiveLyricCard: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
 
+            // Claude: 意味・文脈
             Text(entry.explanation)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.white.opacity(0.7))
                 .lineSpacing(5)
                 .padding(.horizontal, 14)
-                .padding(.bottom, 14)
+
+            // GPT-4o: 韻・技法（あれば）
+            if let tech = entry.technique, !tech.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Text("韻")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundColor(Color(hex: "#0d0d0d"))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.gold)
+                        .cornerRadius(4)
+                    Text(tech)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.gold.opacity(0.8))
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 6)
+            }
+
+            Spacer().frame(height: 14)
         }
         .background(Color(hex: "#141414"))
         .cornerRadius(14)
