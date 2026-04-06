@@ -39,6 +39,12 @@ def get_openai():
         raise RuntimeError("OPENAI_API_KEY が .env に設定されていません")
     return OpenAI(api_key=key)
 
+# ─── Fine-tuned model IDs (fine-tuning後に .env で設定) ─────────────────────────
+# RAP_EXPLAIN_MODEL: ラップ解説AI (gpt-4o-mini fine-tuned)
+# WHISPER_MODEL_PATH: Whisperファインチューン済みモデルのローカルパス
+RAP_EXPLAIN_MODEL = os.environ.get("RAP_EXPLAIN_MODEL", "gpt-4o")
+WHISPER_MODEL_PATH = os.environ.get("WHISPER_MODEL_PATH", "")  # 空=OpenAI Whisper API使用
+
 def get_anthropic():
     from anthropic import Anthropic
     key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -86,8 +92,52 @@ def download_audio(url: str, start: int = 0) -> str:
 
 # ─── Whisper transcription ──────────────────────────────────────────────────────
 
+def transcribe_local(audio_path: str) -> list[dict]:
+    """Fine-tuned Whisperモデル（ローカル）で文字起こし"""
+    try:
+        import torch
+        import torchaudio
+        from transformers import WhisperProcessor, WhisperForConditionalGeneration
+    except ImportError:
+        raise RuntimeError("transformers/torch が未インストールです: pip install transformers torch torchaudio")
+
+    print(f"🎙️  Local Whisper ({WHISPER_MODEL_PATH}) で文字起こし中...")
+    processor = WhisperProcessor.from_pretrained(WHISPER_MODEL_PATH, language="ja", task="transcribe")
+    model = WhisperForConditionalGeneration.from_pretrained(WHISPER_MODEL_PATH)
+
+    waveform, sr = torchaudio.load(audio_path)
+    if waveform.shape[0] > 1:
+        waveform = waveform.mean(dim=0, keepdim=True)
+    if sr != 16000:
+        waveform = torchaudio.transforms.Resample(sr, 16000)(waveform)
+
+    # 30秒チャンクに分割して処理
+    chunk_len = 16000 * 30
+    audio_np = waveform.squeeze().numpy()
+    segments = []
+    for i in range(0, len(audio_np), chunk_len):
+        chunk = audio_np[i:i + chunk_len]
+        if len(chunk) < 1600:
+            break
+        inputs = processor(chunk, sampling_rate=16000, return_tensors="pt")
+        with torch.no_grad():
+            ids = model.generate(inputs["input_features"])
+        text = processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
+        if text:
+            start = round(i / 16000, 2)
+            end = round((i + len(chunk)) / 16000, 2)
+            segments.append({"start": start, "end": end, "text": text})
+
+    print(f"✅ {len(segments)} segments (local Whisper)")
+    return segments
+
+
 def transcribe(audio_path: str, openai_client) -> list[dict]:
-    print("🎙️  Transcribing with Whisper (word-level timestamps)...")
+    # ローカルfine-tunedモデルが設定されていればそちらを優先
+    if WHISPER_MODEL_PATH and Path(WHISPER_MODEL_PATH).exists():
+        return transcribe_local(audio_path)
+
+    print("🎙️  Transcribing with Whisper API (word-level timestamps)...")
     with open(audio_path, "rb") as f:
         response = openai_client.audio.transcriptions.create(
             model="whisper-1",
@@ -161,7 +211,7 @@ def analyze_batch(segments: list[dict], rapper1: str, rapper2: str, openai_clien
 
         try:
             resp = openai_client.chat.completions.create(
-                model="gpt-4o",
+                model=RAP_EXPLAIN_MODEL,
                 messages=[
                     {"role": "system", "content": gpt_system},
                     {"role": "user", "content": f"以下{len(batch)}件を解析:\n{batch_numbered}"},
