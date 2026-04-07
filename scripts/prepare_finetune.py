@@ -320,6 +320,109 @@ def transcript_to_qa_pairs(record: dict) -> list[dict]:
     return pairs
 
 
+def build_relationship_pairs() -> list[dict]:
+    """アーティスト関係性・クルー・師弟・ビーフのQ&Aペア"""
+    qa_list = [
+        (
+            "BAD HOPのメンバー構成と各自の役割を教えてください。",
+            "**BAD HOP**は神奈川県川崎市出身のヒップホップグループです。\n\n"
+            "メンバー：\n"
+            "- **T-PABLOW** — グループの顔。フロウの多様性とパンチラインが武器\n"
+            "- **Yzerr** — T-PABLOWの双子の弟。トラップ寄りのフロウ\n"
+            "- **VINGO** — 感情的なライムとストーリーテリング\n"
+            "- **G-k.i.d** — 高速フロウとライム密度\n"
+            "- **Benjazzy** — メロウな声質とフック担当\n"
+            "- **TAKI** — ビートメイクも担当するトラック職人\n"
+            "- **Gapper** — ハードコアなバースとアドリブ\n\n"
+            "川崎の厳しい環境で育ったリアルな経験が歌詞のベースにあり、"
+            "日本のトラップシーンを牽引した存在です。2023年に惜しまれながら解散。"
+        ),
+        (
+            "舐達麻の成り立ちとメンバーについて教えてください。",
+            "**舐達麻（なめだるま）**は埼玉県熊谷市を拠点とするヒップホップグループです。\n\n"
+            "メンバー：\n"
+            "- **BADSAIKUSH** — ラッパー。独特の低音ボイスと絵画的な歌詞\n"
+            "- **DELTA9KID** — ラッパー。ダークで哲学的なリリック\n"
+            "- **Georgette** — DJとビートメイク担当\n\n"
+            "グループ名・歌詞・ビジュアルすべてが大麻文化と深く結びついており、"
+            "その独自のアウトロー美学が熱狂的なファンを獲得。"
+            "インディペンデントで活動しながら日本語ラップシーンで確固たる地位を築きました。"
+        ),
+        (
+            "ZEEBRAとUZIの師弟関係について教えてください。",
+            "**ZEEBRA**と**UZI**は日本語ラップ黎明期からの重要な関係です。\n\n"
+            "ZEEBRAはK DUB SHINEとともに「キングギドラ」を結成し、"
+            "1990年代から日本語ラップシーンを率いたパイオニア。\n\n"
+            "UZIはZEEBRAの影響を受けた世代のラッパーで、"
+            "日本語ラップの「本物志向」「ストリート感覚」を受け継いだアーティストとして評価されます。\n\n"
+            "こうした先輩から後輩への技術・マインドの継承が"
+            "日本語ラップシーンの縦のつながりを形成しています。"
+        ),
+        (
+            "日本語ラップのビーフで有名なKNIZZ vs SEEDAについて教えてください。",
+            "**KNIZZ vs SEEDA**は日本語ラップシーンで語り継がれるビーフのひとつです。\n\n"
+            "SEEDAは東京・代々木出身のラッパーで、リアルな路上経験を持つ「本物」として評価されていました。\n"
+            "KNIZZとのビーフはディストラックの応酬という形で展開し、"
+            "どちらが「本物のストリート」かという真正性をめぐる争いでした。\n\n"
+            "このビーフは単なる口喧嘩を超え、"
+            "日本語ラップにおける「リアル」とは何かという問いを"
+            "シーン全体に突きつけた重要な出来事として記憶されています。"
+        ),
+        (
+            "Drake vs Kendrick Lamarのビーフを解説してください。",
+            "**Drake vs Kendrick Lamar（2024年）**は現代ヒップホップ史上最大のビーフです。\n\n"
+            "経緯：\n"
+            "- 2024年初頭、複数のトラックで互いへの批判が激化\n"
+            "- KendrickがMetro Boomin「Like That」でDrakeとJ. Coleを名指しでdis\n"
+            "- DrakeはKendrickの私生活・子供・精神状態を攻撃\n\n"
+            "主なdissトラック：\n"
+            "- Kendrick「Euphoria」（7分超の全面攻撃）\n"
+            "- Kendrick「Not Like Us」（Drake犯罪疑惑への直接攻撃）\n"
+            "- Drake「Family Matters」「Push Ups」\n\n"
+            "結果：「Not Like Us」がビルボード1位、グラミー賞受賞。\n"
+            "業界全体がKendrick支持に傾き、Drakeは沈黙。"
+            "Kendrickの圧倒的勝利とされています。"
+        ),
+        (
+            "WU-TANG CLANのメンバーと各自の特徴を教えてください。",
+            "**Wu-Tang Clan**はニューヨーク・スタテンアイランド出身の9人組グループ（1992年結成）です。\n\n"
+            "メンバーと特徴：\n"
+            "- **RZA** — リーダー兼プロデューサー。武侠映画サンプリングの独自スタイル\n"
+            "- **GZA** — 最も詩的でミニマルなライム。「Liquid Swords」で評価\n"
+            "- **Method Man** — 最もポップで聴きやすい。コーラスの名手\n"
+            "- **Raekwon** — マフィア的な世界観。「Only Built 4 Cuban Linx」が名盤\n"
+            "- **Ghostface Killah** — 感情的で速射砲的なスタイル\n"
+            "- **Inspectah Deck** — 知的で緻密なライム\n"
+            "- **U-God** — ハードコアなバース\n"
+            "- **Masta Killa** — 少ないバースながら高密度\n"
+            "- **Ol' Dirty Bastard (ODB)** — 最も奇抜。予測不能なフロウ\n\n"
+            "全員がソロ活動もしながら集結する「武士団」的結束が特徴。"
+        ),
+    ]
+    pairs = []
+    for question, answer in qa_list:
+        pairs.append({
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": question},
+                {"role": "assistant", "content": answer},
+            ]
+        })
+    return pairs
+
+
+def build_punchline_pairs() -> list[dict]:
+    return []  # 次のステップで実装
+
+
+def build_slang_pairs() -> list[dict]:
+    return []  # 次のステップで実装
+
+
+def build_beatmaking_pairs() -> list[dict]:
+    return []  # 次のステップで実装
+
+
 def build_curated_pairs() -> list[dict]:
     """厳選した専門知識Q&Aペア（手動作成）"""
     pairs = []
@@ -370,6 +473,15 @@ def build_curated_pairs() -> list[dict]:
                     {"role": "assistant", "content": answer},
                 ]
             })
+
+    # ── 関係性・クルー・師弟・ビーフの深い知識 ────────────────────────────
+    pairs.extend(build_relationship_pairs())
+    # ── 伝説のパンチライン・社会的背景 ───────────────────────────────────
+    pairs.extend(build_punchline_pairs())
+    # ── 地域スラング・隠語 ────────────────────────────────────────────────
+    pairs.extend(build_slang_pairs())
+    # ── ビートメイク・機材・プロデューサー ───────────────────────────────
+    pairs.extend(build_beatmaking_pairs())
 
     return pairs
 
