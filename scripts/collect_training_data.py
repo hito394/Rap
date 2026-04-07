@@ -333,10 +333,30 @@ def download_audio(video_id: str, out_dir: Path) -> Path | None:
     return out_path if out_path.exists() else None
 
 
+def whisper_transcribe(audio_path: str) -> list[dict]:
+    """ローカルWhisperで音声を文字起こし"""
+    try:
+        import whisper
+    except ImportError:
+        print("  ⚠ whisperが未インストール: pip install openai-whisper")
+        return []
+    model = whisper.load_model("base")
+    result = model.transcribe(audio_path, language="ja", word_timestamps=False)
+    segments = []
+    for seg in result.get("segments", []):
+        text = seg.get("text", "").strip()
+        if text:
+            segments.append({
+                "start": round(seg["start"], 2),
+                "end": round(seg["end"], 2),
+                "text": text,
+            })
+    return segments
+
+
 def collect(include_audio: bool = False):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    if include_audio:
-        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)  # 常に作成（Whisperフォールバック用）
 
     seen_ids = {p.stem for p in OUTPUT_DIR.glob("*.json")}
     all_videos = []
@@ -344,6 +364,7 @@ def collect(include_audio: bool = False):
     print(f"\n{'='*60}")
     print("YouTube解説動画 トランスクリプト収集")
     print(f"クエリ数: {len(SEARCH_QUERIES)} / 1件あたり最大: {MAX_PER_QUERY}")
+    print(f"スキップ条件: 60秒未満 / 7200秒超 / 動画ID不正 のみ")
     print(f"{'='*60}\n")
 
     # 検索
@@ -356,34 +377,62 @@ def collect(include_audio: bool = False):
             seen_ids.update(v["id"] for v in new)
             print(f"  → {len(new)} 件の新規動画")
         except Exception as e:
-            print(f"  ⚠ エラー: {e}")
+            print(f"  ⚠ 検索エラー: {e}")
 
-    print(f"\n合計 {len(all_videos)} 件の動画からトランスクリプト取得開始\n")
+    print(f"\n合計 {len(all_videos)} 件の動画を処理開始\n")
 
     success = 0
+    skipped = 0
     for i, video in enumerate(all_videos, 1):
         vid = video["id"]
+        duration = video.get("duration", 0)
         title = video["title"][:60]
-        print(f"[{i}/{len(all_videos)}] {title} ({vid})")
+        print(f"[{i}/{len(all_videos)}] {title}")
+        print(f"  ID: {vid} / 長さ: {duration}秒 / クエリ: {video['query'][:30]}")
 
+        # 既存ファイルはスキップ
         out_path = OUTPUT_DIR / f"{vid}.json"
         if out_path.exists():
             print("  → スキップ（既存）")
             success += 1
             continue
 
+        # 長さチェック（60秒未満 or 7200秒超のみスキップ）
+        if duration and duration < 60:
+            print(f"  ✗ スキップ: {duration}秒 < 60秒（短すぎる）")
+            skipped += 1
+            continue
+        if duration and duration > 7200:
+            print(f"  ✗ スキップ: {duration}秒 > 7200秒（2時間超）")
+            skipped += 1
+            continue
+
         try:
+            # ── Step 1: YouTube字幕を試みる ──────────────────────────────
+            print("  [1/2] YouTube字幕を取得中...")
             segments = fetch_transcript(vid)
-            if not segments:
-                print("  → 字幕なし、スキップ")
-                continue
 
-            duration = video.get("duration", 0)
-            # 短すぎる（3分未満）・長すぎる（2時間超）はスキップ
-            if duration and (duration < 180 or duration > 7200):
-                print(f"  → 長さ {duration}秒 のためスキップ")
-                continue
+            if segments:
+                print(f"  ✅ 字幕取得成功: {len(segments)} セグメント")
+            else:
+                # ── Step 2: 字幕なし → 音声DL + Whisper文字起こし ────────
+                print("  ⚡ 字幕なし → 音声ダウンロード + Whisper文字起こしに切り替え")
+                audio_path = download_audio(vid, AUDIO_DIR)
+                if not audio_path:
+                    print("  ✗ スキップ: 音声ダウンロード失敗")
+                    skipped += 1
+                    continue
+                print(f"  🎵 音声DL完了: {audio_path.name}")
+                print("  [2/2] Whisperで文字起こし中...")
+                segments = whisper_transcribe(str(audio_path))
+                if segments:
+                    print(f"  ✅ Whisper文字起こし成功: {len(segments)} セグメント")
+                else:
+                    print("  ✗ スキップ: Whisperでも文字起こしできず")
+                    skipped += 1
+                    continue
 
+            # 保存
             record = {
                 "video_id": vid,
                 "title": video["title"],
@@ -394,21 +443,24 @@ def collect(include_audio: bool = False):
             }
             out_path.write_text(json.dumps(record, ensure_ascii=False, indent=2))
             success += 1
-            print(f"  ✅ {len(segments)} セグメント保存")
 
-            # 音声ダウンロード（オプション）
+            # --audio フラグ時は明示的にも音声を保存
             if include_audio:
-                audio_path = download_audio(vid, AUDIO_DIR)
-                if audio_path:
-                    print(f"  🎵 音声: {audio_path}")
+                audio_out = AUDIO_DIR / f"{vid}.mp3"
+                if not audio_out.exists():
+                    downloaded = download_audio(vid, AUDIO_DIR)
+                    if downloaded:
+                        print(f"  🎵 音声保存: {downloaded.name}")
 
         except subprocess.TimeoutExpired:
-            print("  → タイムアウト")
+            print(f"  ✗ スキップ: タイムアウト（{vid}）")
+            skipped += 1
         except Exception as e:
-            print(f"  ⚠ エラー: {e}")
+            print(f"  ✗ スキップ: 予期しないエラー — {e}")
+            skipped += 1
 
     print(f"\n{'='*60}")
-    print(f"完了: {success}/{len(all_videos)} 件取得")
+    print(f"完了: 保存 {success} 件 / スキップ {skipped} 件 / 合計 {len(all_videos)} 件")
     print(f"保存先: {OUTPUT_DIR.resolve()}")
     print(f"{'='*60}\n")
 
