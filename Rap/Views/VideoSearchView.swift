@@ -7,6 +7,7 @@ class VideoSearchViewModel {
     var isLoading = false
     var toastMessage: String?
     var hasSearched = false
+    var showServerSetupBanner = false
     private var debounceTask: Task<Void, Never>?
 
     func scheduleSearch() {
@@ -53,8 +54,10 @@ class VideoSearchViewModel {
             } catch {
                 toastMessage = (error as? YouTubeError)?.errorDescription ?? "接続を確認してください"
             }
-        } else {
-            toastMessage = "サーバー未接続・YouTube APIキー未設定\n右上 ⚙️ でMacサーバーを設定してください"
+        }
+        // サーバーもAPIキーもなければバナー表示
+        if videos.isEmpty && !TranscriptionService.isConfigured && YouTubeService.apiKey.isEmpty {
+            showServerSetupBanner = true
         }
         isLoading = false
     }
@@ -150,10 +153,42 @@ struct VideoSearchView: View {
                         .cardStyle()
                     }
 
-                    // Empty state
+                    // Empty state + server setup banner
                     if vm.hasSearched && vm.videos.isEmpty && !vm.isLoading {
-                        EmptyTabMessage(text: "動画が見つかりませんでした\n別のキーワードで検索してみてください",
-                                        icon: "video.slash")
+                        if vm.showServerSetupBanner {
+                            // サーバー未設定バナーを全幅で表示
+                            VStack(spacing: 16) {
+                                Image(systemName: "server.rack")
+                                    .font(.system(size: 36, weight: .ultraLight))
+                                    .foregroundColor(.gray.opacity(0.5))
+                                Text("Macサーバーを設定すると\nAPIキー不要で動画検索できます")
+                                    .font(.system(.subheadline, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                                Button {
+                                    showServerSettings = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "gear")
+                                        Text("サーバーを設定する")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(Color(hex: "#0d0d0d"))
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(Color.gold)
+                                    .cornerRadius(10)
+                                }
+                                Text("起動コマンド: cd ~/Rap/scripts && python server.py")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 32)
+                            .padding(.horizontal, 20)
+                        } else {
+                            EmptyTabMessage(text: "動画が見つかりませんでした\n別のキーワードで検索してみてください",
+                                            icon: "video.slash")
+                        }
                     }
 
                     // Manual YouTube URL entry

@@ -18,6 +18,18 @@ private struct iTunesResponse: Codable {
 }
 
 struct iTunesService {
+    /// カラオケ・カバー・歌ってみた系を除外するキーワード
+    private static let noiseKeywords = [
+        "カラオケ", "karaoke", "原曲歌手", "cover", "歌っちゃ王",
+        "歌ってみた", "うたってみた", "acoustic", "tribute",
+        "instrumental", "off vocal", "minus one"
+    ]
+
+    private static func isNoise(_ track: iTunesTrack) -> Bool {
+        let combined = "\(track.trackName) \(track.artistName) \(track.collectionName ?? "")".lowercased()
+        return noiseKeywords.contains { combined.contains($0.lowercased()) }
+    }
+
     private static func fetch(_ urlString: String) async -> [iTunesTrack] {
         guard let url = URL(string: urlString),
               let (data, _) = try? await URLSession.shared.data(from: url),
@@ -28,14 +40,17 @@ struct iTunesService {
     }
 
     // Predictive suggestions while user types title
-    static func searchByTitle(query: String, limit: Int = 8) async -> [iTunesTrack] {
+    static func searchByTitle(query: String, limit: Int = 10) async -> [iTunesTrack] {
         guard query.count >= 2,
               let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return []
         }
-        return await fetch(
+        let results = await fetch(
             "https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&entity=song&limit=\(limit)"
         )
+        // カラオケ・カバーを除外して最大6件返す
+        let filtered = results.filter { !isNoise($0) }
+        return Array((filtered.isEmpty ? results : filtered).prefix(6))
     }
 
     // Best match for known title + artist (used after decode)
@@ -45,16 +60,25 @@ struct iTunesService {
             return nil
         }
         let results = await fetch(
-            "https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&limit=5"
+            "https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&limit=10"
         )
+        // ノイズ除外
+        let clean = results.filter { !isNoise($0) }
+        let pool = clean.isEmpty ? results : clean
+
         let titleNorm = title.lowercased()
         let artistNorm = artist.lowercased()
-        if let best = results.first(where: {
-            $0.trackName.lowercased().contains(titleNorm) && $0.artistName.lowercased().contains(artistNorm)
+
+        // 1. 曲名 + アーティスト両方一致
+        if let best = pool.first(where: {
+            $0.trackName.lowercased().contains(titleNorm) &&
+            $0.artistName.lowercased().contains(artistNorm)
         }) { return best }
-        if let byTitle = results.first(where: { $0.trackName.lowercased().contains(titleNorm) }) {
+
+        // 2. 曲名のみ一致
+        if let byTitle = pool.first(where: { $0.trackName.lowercased().contains(titleNorm) }) {
             return byTitle
         }
-        return results.first
+        return pool.first
     }
 }
