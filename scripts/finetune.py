@@ -54,17 +54,30 @@ def submit_job(client: OpenAI) -> str:
         sys.exit(1)
 
     # データ件数チェック
-    train_count = sum(1 for _ in TRAIN_PATH.read_text().splitlines() if _.strip())
+    train_lines = [l for l in TRAIN_PATH.read_text().splitlines() if l.strip()]
+    train_count = len(train_lines)
     print(f"\n学習データ: {train_count} 件")
     if train_count < 10:
         print("❌ OpenAIのfine-tuningには最低10件必要です。データを追加してください。")
         sys.exit(1)
 
+    # MAX_TRAIN_SAMPLES でコストを抑える（Noneで全件使用）
+    MAX_TRAIN_SAMPLES = int(os.environ.get("MAX_TRAIN_SAMPLES", 0)) or None
+    if MAX_TRAIN_SAMPLES and train_count > MAX_TRAIN_SAMPLES:
+        import random
+        sampled = random.sample(train_lines, MAX_TRAIN_SAMPLES)
+        tmp_path = TRAIN_PATH.parent / "finetune_rap_explain_train_sampled.jsonl"
+        tmp_path.write_text("\n".join(sampled))
+        print(f"  ⚡ {MAX_TRAIN_SAMPLES}件にサンプリング（コスト削減）→ {tmp_path.name}")
+        actual_train_path = tmp_path
+    else:
+        actual_train_path = TRAIN_PATH
+
     state = load_state()
 
     # ファイルアップロード
     print("\n[1/3] ファイルアップロード")
-    train_file_id = upload_file(client, TRAIN_PATH)
+    train_file_id = upload_file(client, actual_train_path)
     val_file_id = upload_file(client, VAL_PATH) if VAL_PATH.exists() else None
 
     # ジョブ投入
