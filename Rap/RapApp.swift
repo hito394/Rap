@@ -18,7 +18,7 @@ struct RapApp: App {
             ContentView()
                 .preferredColorScheme(.dark)
                 .task {
-                    // Auto-discover Mac server URL in background at launch
+                    Configuration.debugPrint()          // Xcodeコンソールでキー確認
                     await TranscriptionService.autoDiscover()
                 }
         }

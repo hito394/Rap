@@ -289,12 +289,23 @@ class TrackDetailViewModel {
         isPlayingPreview = false
     }
 
+    /// Convert Int level (0/1/2) from UI picker to ExpertiseLevel enum
+    var expertiseLevel: ExpertiseLevel {
+        switch selectedLevel {
+        case 0: return .beginner
+        case 2: return .expert
+        default: return .intermediate
+        }
+    }
+
     func decode(saveHistory: (HistoryItem) -> Void) async {
         guard canDecode else { return }
         isLoading = true
         result = nil
         rawResult = nil
         stopPreview()
+
+        let level = expertiseLevel  // capture at decode time
 
         // Fetch lyrics + iTunes in parallel
         async let lrcResult = LrcLibService.search(title: titleText, artist: artistText)
@@ -305,13 +316,15 @@ class TrackDetailViewModel {
         do {
             let raw: String
             if let lrc = lrcTrack, let lyrics = lrc.syncedLyrics ?? lrc.plainLyrics, !lyrics.isEmpty {
-                // Use actual lyrics from LrcLib → Claude analyzes them
+                // LrcLib歌詞あり → レベル指定でClaudeが解析
                 raw = try await AnthropicService.decodeTrackWithActualLyrics(
-                    title: titleText, artist: artistText, lyrics: lyrics
+                    title: titleText, artist: artistText, lyrics: lyrics, level: level
                 )
             } else {
-                // Fallback: Claude knowledge-based
-                raw = try await AnthropicService.decodeTrack(title: titleText, artist: artistText)
+                // フォールバック: Claudeの知識ベース解析 (レベル指定あり)
+                raw = try await AnthropicService.decodeTrack(
+                    title: titleText, artist: artistText, level: level
+                )
             }
             rawResult = raw
             result = TrackDecode.parse(from: raw)

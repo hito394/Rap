@@ -164,7 +164,57 @@ KOHH/Loota（T-Pablowの兄弟）。トラップスタイルと川崎ストリ�
 }
 """
 
-    static let freeSystemPrompt = """
+    // MARK: - Level-aware track decode prompt
+
+    /// Returns a level-specific instruction block appended to trackSystemPrompt.
+    /// This changes the depth/style of Claude's explanation for each bar.
+    static func trackSystemPrompt(level: ExpertiseLevel) -> String {
+        let levelBlock: String
+        switch level {
+        case .beginner:
+            levelBlock = """
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【解説レベル: 初心者向け】
+・ヒップホップを全く知らない人でも分かるように書く
+・専門用語（ライム/フロウ/パンチライン等）は使わず、平易な日本語で説明する
+・各バースのexplanationは「このラインは〜という意味で、〜の感情を表している」という形式で1〜2文
+・スラング解説は最も重要な1〜2語のみ
+・subtextは省略可（分かりにくければ空文字列で可）
+・背景・時代背景も「当時の日本では〜」と身近な言葉で説明する
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        case .intermediate:
+            levelBlock = """
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【解説レベル: 中級者向け（デフォルト）】
+・ヒップホップの基礎知識がある人向け。ライム・フロウ・パンチライン・ダブルミーニングの用語は使ってよい
+・各バースのexplanationはライム技法・文化的背景・感情を2〜3文でバランスよく説明
+・スラングは曲中の主要なものを全て解説
+・subtextは隠された意味がある場合のみ記載
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        case .expert:
+            levelBlock = """
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【解説レベル: 上級者・マニア向け】
+・日本語ラップを深く知る研究者・マニアが対象
+・各バースのexplanationで以下を必ず分析:
+  - 韻の母音列パターン（例: 「東京/o-u-o-u」と「望郷/o-u-o-u」が一致）
+  - 使用されているライム技法の名称（マルチシラブル/内部韻/音節分割/ダブルミーニング等）
+  - フロウのリズムパターン（オンビート/シンコペーション/高速フロウ等）
+  - 他の伝説的楽曲・アーティストとの具体的比較
+  - パンチラインの構造分析（なぜ効果的か・どのレトリックを使っているか）
+・subtextは必ず記載（なければ「なし」と明記しない、省略可）
+・全スラングの語源・地域性・歴史的文脈まで解説
+・rhyme_techniquesは10種類以上列挙を目標にする
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        }
+        return trackSystemPrompt + levelBlock
+    }
 あなたは日本語ラップ・ヒップホップカルチャーの最高権威です。\
 初心者への丁寧な説明から、マニア向けの深い技術論まで、相手のレベルに合わせて答えます。
 
@@ -598,20 +648,25 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         return try await call(system: songAnalysisSystemPrompt, messages: messages)
     }
 
-    static func decodeTrack(title: String, artist: String) async throws -> String {
+    static func decodeTrack(
+        title: String,
+        artist: String,
+        level: ExpertiseLevel = .intermediate
+    ) async throws -> String {
         let messages: [[String: Any]] = [
             ["role": "user", "content": "曲名: \(title)\nアーティスト: \(artist)"]
         ]
-        return try await call(system: trackSystemPrompt, messages: messages)
+        return try await call(system: trackSystemPrompt(level: level), messages: messages)
     }
 
     /// Decode track using actual lyrics from LrcLib. Returns same JSON format as decodeTrack.
     static func decodeTrackWithActualLyrics(
         title: String,
         artist: String,
-        lyrics: String
+        lyrics: String,
+        level: ExpertiseLevel = .intermediate
     ) async throws -> String {
-        let system = trackSystemPrompt + """
+        let system = trackSystemPrompt(level: level) + """
 
 【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
 歌詞は全ライン漏れなくkey_barsに含めること。

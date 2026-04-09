@@ -40,9 +40,26 @@ struct Configuration {
     private static func resolve(_ infoPlistKey: String, udKey: String) -> String {
         let fromPlist = (Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String ?? "").trimmed
         if !fromPlist.isEmpty && !fromPlist.hasPrefix("$(") {
-            return fromPlist  // xcconfig value injected successfully
+            // ✅ Key loaded from xcconfig/Build Settings
+            return fromPlist
         }
-        return (UserDefaults.standard.string(forKey: udKey) ?? "").trimmed
+        let fromUD = (UserDefaults.standard.string(forKey: udKey) ?? "").trimmed
+        if fromUD.isEmpty {
+            // ⚠️ Key missing: neither xcconfig nor UserDefaults has a value
+            print("⚠️ [Configuration] \(infoPlistKey) is not set. " +
+                  "Fill Config/Secrets.xcconfig or enter in app Settings.")
+        }
+        return fromUD
+    }
+
+    /// Call at startup (e.g. RapApp.init) to print key status for debugging.
+    static func debugPrint() {
+        print("── Configuration Debug ──────────────────────────")
+        print("  ANTHROPIC : \(isAnthropicConfigured ? "✅ set (\(anthropicAPIKey.prefix(12))...)" : "❌ missing")")
+        print("  YOUTUBE   : \(isYouTubeConfigured   ? "✅ set (\(youtubeAPIKey.prefix(12))...)"   : "❌ missing")")
+        print("  OPENAI    : \(isOpenAIConfigured     ? "✅ set (\(openAIAPIKey.prefix(12))...)"     : "❌ missing")")
+        print("  SERVER    : \(TranscriptionService.serverURL.isEmpty ? "❌ not detected" : "✅ \(TranscriptionService.serverURL)")")
+        print("────────────────────────────────────────────────")
     }
 }
 
