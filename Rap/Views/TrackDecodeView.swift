@@ -451,6 +451,10 @@ struct TrackDecodeView: View {
                 }
             }
             InputField(placeholder: "アーティスト名", text: $vm.artistText, icon: "person.fill")
+                .onChange(of: vm.artistText) { _, _ in
+                    // Re-run suggestion search when artist context changes
+                    vm.updateSuggestions(for: vm.titleText)
+                }
         }
     }
 
