@@ -92,6 +92,14 @@ struct AnthropicService {
 """
 
     static let trackSystemPrompt = """
+あなたは日本のヒップホップに命を懸けている専門家です。
+
+【解析の必須手順】
+1. まずそのラッパー/グループのプロフィール（出身地・所属クルー・結成年・スタイル・これまでの功績）を正確に定義する
+2. その背景がリリックにどう反映されているかを解析する
+3. 韻の踏み方・サンプリング元ネタ・スラングを、出身地・時代背景と紐づけて解説する
+4. タブを切り替えた際（初心者/中級者/上級者）に応じて解説の深度を変える
+
 あなたは日本語ラップ・ヒップホップ史の最高権威です。以下すべての領域に精通しています:
 
 【日本語ラップ深知識】
@@ -657,14 +665,65 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         return try await call(system: songAnalysisSystemPrompt, messages: messages)
     }
 
+    // MARK: - Artist profile lookup (injected into every decode request)
+
+    /// Returns a factual profile block for known artists to anchor Claude's response.
+    /// This prevents hallucinated bios and wrong lyric attributions.
+    private static func artistProfileBlock(_ artist: String) -> String {
+        let a = artist.lowercased()
+        let profiles: [(keys: [String], profile: String)] = [
+            (["bad hop", "badhop"],
+             "BAD HOP: 神奈川県川崎市溝の口出身コレクティブ（2013年結成・2024年東京ドームで解散）。メンバー: T-Pablow / Yzerr / Benjazzy / Yellow Pato / Tiji Jojo / Keny / G-K.I.D。川崎の工業地帯・貧困・ストリート実情をトラップスタイルで表現。T-Pablowの兄がKOHH、弟がLoota（KOHH/Lootaとは別グループ）。代表作: BAD HOP(2015) / BAD HOP HOUSE(2016) / BAD HOP HOUSE 2(2018) / Grateful(2020) / GOLD DISK(2022)。「Kawasaki Drift」はBAD HOP HOUSE(2016)収録、川崎のストリートカルチャーと仲間への誇りを歌う代表曲。"),
+            (["kohh"],
+             "KOHH: 東京都上野出身。本名非公開。Lootaは実弟。ミニマルフロウ・退廃美・NIKE文化。代表作: Monochrome(2014) / 美しい日本(2016) / Nobody(2017) / Dirtシリーズ。"),
+            (["awich"],
+             "Awich: 本名・大城阿与。沖縄出身1989年生まれ。夫Jazzy Jazzが2010年に銃撃事件で死亡。娘を育てながら音楽再開。代表作: Queendom(2021) / GIFT(2022)。「Bad Bitch 美学」「Naked」「Gila」。"),
+            (["creepy nuts", "r-指定", "r指定", "dj松永"],
+             "Creepy Nuts: R-指定(大阪出身・UMB2017-2019三連覇)×DJ松永(DMC世界チャンピオン2019)。代表作: 助演男優賞 / のびしろ / Bling-Bang-Bang-Born。"),
+            (["舐達麻", "なめだるま"],
+             "舐達麻: 埼玉出身。BES / BADSAIKUSH / G-PLANTS。大麻文化・ローファイトラップ・スロウフロウ。BES逮捕歴あり。代表作: PHILOSOPHIA / GODBREATH BUDDHACESS。"),
+            (["漢", "gami", "餓鬼レンジャー"],
+             "漢 a.k.a. GAMI: 東京1979年生まれ。MSC・餓鬼レンジャー。東京アンダーグラウンド重鎮。代表作: MSC「剥きだし」(2005) / 孤独へのルート / IN THE NAME OF HIPHOP。"),
+            (["般若"],
+             "般若: 神奈川厚木出身1979年生まれ。フリースタイルダンジョンのモンスター首領。代表作: 般若シリーズ / 一番病 / 超人シリーズ。"),
+            (["zorn"],
+             "ZORN: 東京出身。家族・仕事・ストリート・生活者目線。代表作: LIFE(2017) / HERO(2020) / 稼業。"),
+            (["呂布カルマ", "ryo fukui karma"],
+             "呂布カルマ: 名古屋出身。KOK長期王者。超高密度マルチシラブルライム。バトルシーン最強クラス。"),
+            (["唾奇"],
+             "唾奇: 沖縄出身。内省的・叙情的スタイル。showgoとのコラボ代表作: 春の温度 / Alright / MEMO。"),
+            (["daichi yamamoto"],
+             "Daichi Yamamoto: 京都出身・英国留学経験。日英バイリンガルラップ。代表作: Checkmate / Across The Clouds / Nobody Knows。"),
+            (["punpee", "パンピー"],
+             "PUNPEE: 東京出身。PSGメンバー。映画・ゲーム・80年代カルチャーを織り込む。代表作: 夜間飛行 / Someone's Someone / Novel Life。"),
+            (["anarchy"],
+             "Anarchy: 京都出身。ハッスル哲学・自己成長。代表作: 代表曲多数。"),
+            (["ak-69", "ak69"],
+             "AK-69: 名古屋出身。日本語ラップ先駆者。モータリゼーション文化。"),
+            (["seeda"],
+             "SEEDA: 東京出身。ストリートリアリズム先駆者。代表作: HEAVEN(2006) / BLUE(2008)。"),
+        ]
+        for entry in profiles {
+            if entry.keys.contains(where: { a.contains($0) }) {
+                return "\n【アーティスト確定プロフィール】\n\(entry.profile)\n上記プロフィールを解説の土台として必ず使用すること。\n"
+            }
+        }
+        return ""  // Unknown artist — Claude uses its own knowledge
+    }
+
     static func decodeTrack(
         title: String,
         artist: String,
         level: ExpertiseLevel = .intermediate
     ) async throws -> String {
-        let messages: [[String: Any]] = [
-            ["role": "user", "content": "曲名: \(title)\nアーティスト: \(artist)"]
-        ]
+        let profile = artistProfileBlock(artist)
+        let userContent = """
+曲名: \(title)
+アーティスト: \(artist)
+\(profile)
+まず上記アーティストのプロフィール・出身・スタイルを確認し、その背景がこの曲にどう反映されているかを踏まえて解析してください。
+"""
+        let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: trackSystemPrompt(level: level), messages: messages)
     }
 
@@ -675,14 +734,22 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         lyrics: String,
         level: ExpertiseLevel = .intermediate
     ) async throws -> String {
+        let profile = artistProfileBlock(artist)
         let system = trackSystemPrompt(level: level) + """
 
 【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
 歌詞は全ライン漏れなくkey_barsに含めること。
 """
-        let messages: [[String: Any]] = [
-            ["role": "user", "content": "曲名: \(title)\nアーティスト: \(artist)\n\n【実際の歌詞】\n\(lyrics)"]
-        ]
+        let userContent = """
+曲名: \(title)
+アーティスト: \(artist)
+\(profile)
+【実際の歌詞】
+\(lyrics)
+
+上記アーティストのプロフィール・出身背景を踏まえて、歌詞の全ラインを解析してください。
+"""
+        let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: system, messages: messages)
     }
 

@@ -128,30 +128,58 @@ struct YouTubeService {
     }
 
     /// Filter and rank results by relevance.
-    /// When artist is provided, strongly prefer videos whose title contains the artist name.
+    /// When artist is provided:
+    ///   - Strong boost (+0.5) if artist name in video TITLE
+    ///   - Mild boost  (+0.2) if artist name in channel name only
+    ///   - Heavy penalty (-0.7) if artist name absent from both title & channel
+    /// This prevents completely wrong artists (aespa, Big Sean, etc.) from appearing.
     private static func filterByRelevance(_ videos: [YouTubeVideo], query: String, artist: String? = nil) -> [YouTubeVideo] {
-        let threshold = 0.08
         let artistLower = artist?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Break artist into individual words for partial matching (e.g. "bad hop" → ["bad","hop"])
+        let artistWords = artistLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+        // Key words from the track title
+        let queryWords = query.lowercased()
+            .components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
 
         let scored = videos.map { video -> (YouTubeVideo, Double) in
             var score = similarity(video.title, query)
-            let titleLower = video.title.lowercased()
+            let titleLower   = video.title.lowercased()
+            let channelLower = video.channelTitle.lowercased()
 
-            // Boost: artist name appears in video title
-            if !artistLower.isEmpty && titleLower.contains(artistLower) {
-                score += 0.4
+            if !artistLower.isEmpty {
+                let inTitle   = titleLower.contains(artistLower)
+                    || artistWords.contains(where: { titleLower.contains($0) })
+                let inChannel = channelLower.contains(artistLower)
+                    || artistWords.contains(where: { channelLower.contains($0) })
+
+                if inTitle {
+                    score += 0.5   // ✅ artist confirmed in title
+                } else if inChannel {
+                    score += 0.2   // 🟡 artist in channel name
+                } else {
+                    score -= 0.7   // ❌ artist name absent — strong filter
+                }
             }
-            // Penalty: karaoke / cover / tribute detected in title
-            let noiseWords = ["カラオケ", "karaoke", "cover", "covers", "tribute",
-                              "instrumental", "歌ってみた", "うたってみた", "off vocal"]
-            if noiseWords.contains(where: { titleLower.contains($0) }) {
-                score -= 0.5
+
+            // Penalise if less than half the query words appear in the title
+            if !queryWords.isEmpty {
+                let matched = queryWords.filter { titleLower.contains($0) }
+                if Double(matched.count) / Double(queryWords.count) < 0.4 {
+                    score -= 0.2
+                }
             }
+
+            // Karaoke / cover penalty
+            let noise = ["カラオケ", "karaoke", "cover", "covers", "tribute",
+                         "instrumental", "歌ってみた", "うたってみた", "off vocal"]
+            if noise.contains(where: { titleLower.contains($0) }) { score -= 0.5 }
+
             return (video, score)
         }
 
-        let filtered = scored.filter { $0.1 >= threshold }
-        let pool = filtered.isEmpty ? scored : filtered
-        return pool.sorted { $0.1 > $1.1 }.map { $0.0 }
+        // Return results sorted by score; apply minimum threshold only if ≥1 result passes
+        let sorted = scored.sorted { $0.1 > $1.1 }
+        let aboveThreshold = sorted.filter { $0.1 >= 0.2 }
+        return (aboveThreshold.isEmpty ? sorted : aboveThreshold).map { $0.0 }
     }
 }
