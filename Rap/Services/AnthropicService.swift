@@ -711,12 +711,30 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         return ""  // Unknown artist — Claude uses its own knowledge
     }
 
+    /// Returns a system prompt suffix that pins the target artist/track so Claude
+    /// cannot accidentally describe a different artist's biography or lyrics.
+    private static func artistLockBlock(title: String, artist: String) -> String {
+        """
+
+════════════════════════════════════════════════
+【解析対象の固定 — 必ず厳守】
+対象アーティスト : \(artist)
+対象楽曲タイトル : \(title)
+
+・上記アーティスト以外の楽曲・経歴・エピソードを誤って語ることは絶対禁止。
+・「\(artist)」のプロフィール・出身地・スタイルを出発点として解析を行うこと。
+・アーティスト名・楽曲タイトルに疑念がある場合でも、入力された情報を正として扱うこと。
+════════════════════════════════════════════════
+"""
+    }
+
     static func decodeTrack(
         title: String,
         artist: String,
         level: ExpertiseLevel = .intermediate
     ) async throws -> String {
         let profile = artistProfileBlock(artist)
+        let system = trackSystemPrompt(level: level) + artistLockBlock(title: title, artist: artist)
         let userContent = """
 曲名: \(title)
 アーティスト: \(artist)
@@ -724,7 +742,7 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
 まず上記アーティストのプロフィール・出身・スタイルを確認し、その背景がこの曲にどう反映されているかを踏まえて解析してください。
 """
         let messages: [[String: Any]] = [["role": "user", "content": userContent]]
-        return try await call(system: trackSystemPrompt(level: level), messages: messages)
+        return try await call(system: system, messages: messages)
     }
 
     /// Decode track using actual lyrics from LrcLib. Returns same JSON format as decodeTrack.
@@ -735,7 +753,7 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         level: ExpertiseLevel = .intermediate
     ) async throws -> String {
         let profile = artistProfileBlock(artist)
-        let system = trackSystemPrompt(level: level) + """
+        let system = trackSystemPrompt(level: level) + artistLockBlock(title: title, artist: artist) + """
 
 【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
 歌詞は全ライン漏れなくkey_barsに含めること。

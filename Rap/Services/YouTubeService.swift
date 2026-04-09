@@ -29,7 +29,8 @@ struct YouTubeService {
 
     static var apiKey: String { AppConfiguration.youtubeAPIKey }
 
-    /// Known Japanese rap artists / groups for artist extraction from free-form queries.
+    // MARK: - Known artist list
+
     private static let knownArtists: [String] = [
         "bad hop", "badhop", "kohh", "loota", "awich", "creepy nuts",
         "r-指定", "dj松永", "舐達麻", "漢 a.k.a. gami", "般若", "zorn", "punpee",
@@ -38,35 +39,83 @@ struct YouTubeService {
         "benjazzy", "yellow pato", "tiji jojo", "g-k.i.d", "keny",
         "buddha brand", "rip slyme", "ozrosaurus", "nitro microphone",
         "msc", "kgdr", "キングギドラ", "ライムスター", "rhymester",
-        "stillichimiya", "issugi", "jjj", "omsb", "in the city of music",
+        "stillichimiya", "issugi", "jjj", "omsb",
+        "showgo", "bim", "bes", "badsaikush", "g-plants",
     ]
 
-    /// Try to detect a known artist name inside a free-form search string.
-    /// Returns the artist string if found, nil otherwise.
+    /// Song title → canonical artist reverse-lookup.
+    /// Enables artist detection even when only the song title is typed (no artist in query).
+    private static let titleToArtist: [String: String] = [
+        "kawasaki drift": "BAD HOP",
+        "guidance": "BAD HOP",
+        "gutta": "BAD HOP",
+        "bump": "BAD HOP",
+        "stay": "BAD HOP",
+        "4 eva": "BAD HOP",
+        "city of music": "BAD HOP",
+        "never stop": "BAD HOP",
+        "monochrome": "KOHH",
+        "だいじょうぶ": "KOHH",
+        "nobody": "KOHH",
+        "bad bitch 美学": "Awich",
+        "naked": "Awich",
+        "gila": "Awich",
+        "equality": "Awich",
+        "助演男優賞": "Creepy Nuts",
+        "のびしろ": "Creepy Nuts",
+        "bling-bang-bang-born": "Creepy Nuts",
+        "春の温度": "唾奇",
+        "checkmate": "Daichi Yamamoto",
+        "夜間飛行": "PUNPEE",
+        "voice": "仙人掌",
+        "life": "ZORN",
+        "hero": "ZORN",
+        "稼業": "ZORN",
+    ]
+
+    /// Detect artist from a free-form query.
+    /// 1. Checks for known artist names directly.
+    /// 2. Falls back to song-title → artist reverse-lookup.
     static func extractArtistFromQuery(_ query: String) -> String? {
         let q = query.lowercased()
-        return knownArtists.first { q.contains($0) }
+        if let direct = knownArtists.first(where: { q.contains($0) }) { return direct }
+        for (title, artist) in titleToArtist {
+            if q.contains(title.lowercased()) { return artist }
+        }
+        return nil
     }
 
-    /// Build an optimized search query.
-    /// For music queries with a known artist+title, formats as "Artist Title lyric official"
-    /// to surface the correct official content and avoid karaoke/cover results.
+    // MARK: - Query builder
+
+    /// Build a YouTube search query that always pins the artist name.
+    ///
+    /// With artist:    "[Artist] [Title] official audio"
+    /// Without artist: "[Title] lyric official" (unchanged if already specific)
+    /// Battle/event queries are returned as-is.
     static func buildQuery(_ raw: String, artist: String? = nil) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowerRaw = trimmed.lowercased()
-        let alreadySpecific = ["official", "lyric", "mv", "battle", "バトル", "cypher", "サイファー",
-                               "freestyle", "フリースタイル", "documentary"].contains(where: lowerRaw.contains)
-        if alreadySpecific { return trimmed }
 
-        // If artist is provided and not already in the query, prepend it
-        if let artist = artist?.trimmingCharacters(in: .whitespacesAndNewlines), !artist.isEmpty,
-           !lowerRaw.contains(artist.lowercased()) {
-            return "\(artist) \(trimmed) lyric official"
+        // Battle / event-specific keywords — leave untouched
+        let eventKeywords = ["battle", "バトル", "cypher", "サイファー",
+                             "freestyle", "フリースタイル", "documentary", "umb", "kok"]
+        if eventKeywords.contains(where: { lowerRaw.contains($0) }) { return trimmed }
+
+        if let artist = artist?.trimmingCharacters(in: .whitespacesAndNewlines), !artist.isEmpty {
+            let artistLower = artist.lowercased()
+            // Always use "[Artist] [Title] official audio" format.
+            // If artist is already in the query, don't duplicate it.
+            let base = lowerRaw.contains(artistLower) ? trimmed : "\(artist) \(trimmed)"
+            return "\(base) official audio"
         }
-        return "\(trimmed) lyric official"
+
+        // No artist — soft hints only
+        let hasHint = ["official", "lyric", "mv"].contains(where: { lowerRaw.contains($0) })
+        return hasHint ? trimmed : "\(trimmed) lyric official"
     }
 
-    /// Similarity score between two strings (Jaccard on word tokens, 0.0–1.0).
+    // MARK: - Jaccard similarity
+
     static func similarity(_ a: String, _ b: String) -> Double {
         let tokenize: (String) -> Set<String> = { str in
             Set(str.lowercased()
@@ -76,16 +125,11 @@ struct YouTubeService {
         let ta = tokenize(a)
         let tb = tokenize(b)
         guard !ta.isEmpty || !tb.isEmpty else { return 1.0 }
-        let intersection = ta.intersection(tb).count
-        let union = ta.union(tb).count
-        return Double(intersection) / Double(union)
+        return Double(ta.intersection(tb).count) / Double(ta.union(tb).count)
     }
 
-    /// Search YouTube videos.
-    /// - Parameters:
-    ///   - query: Search query (song title or free-form)
-    ///   - artist: Optional artist name used to sharpen the query and filter results
-    ///   - maxResults: Max number of results to request
+    // MARK: - Search
+
     static func search(query: String, artist: String? = nil, maxResults: Int = 15) async throws -> [YouTubeVideo] {
         guard !apiKey.isEmpty else { throw YouTubeError.invalidAPIKey }
 
@@ -120,7 +164,7 @@ struct YouTubeService {
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             let code = httpResponse.statusCode
-            if code == 403 && request.value(forHTTPHeaderField: "X-Ios-Bundle-Identifier") != nil {
+            if code == 403 {
                 var retryRequest = URLRequest(url: request.url!)
                 retryRequest.cachePolicy = .reloadIgnoringLocalCacheData
                 if let (retryData, retryResponse) = try? await URLSession.shared.data(for: retryRequest),
@@ -131,7 +175,7 @@ struct YouTubeService {
                     }
                     let videos = result.items.compactMap { $0.toVideo() }
                     guard !videos.isEmpty else { throw YouTubeError.noResults }
-                    return filterByRelevance(videos, query: query)
+                    return filterByRelevance(videos, query: query, artist: artist)
                 }
             }
             throw YouTubeError.httpError(code)
@@ -146,59 +190,76 @@ struct YouTubeService {
         return filterByRelevance(videos, query: query, artist: artist)
     }
 
-    /// Filter and rank results by relevance.
-    /// When artist is provided:
-    ///   - Strong boost (+0.5) if artist name in video TITLE
-    ///   - Mild boost  (+0.2) if artist name in channel name only
-    ///   - Heavy penalty (-0.7) if artist name absent from both title & channel
-    /// This prevents completely wrong artists (aespa, Big Sean, etc.) from appearing.
-    private static func filterByRelevance(_ videos: [YouTubeVideo], query: String, artist: String? = nil) -> [YouTubeVideo] {
+    // MARK: - Relevance filter (two-phase)
+
+    /// Phase 1 — HARD FILTER (binary, runs first when artist is known):
+    ///   The video title OR channel name MUST contain the artist name/words.
+    ///   Videos that fail are permanently rejected — no score, no second chance.
+    ///   If every video fails the hard filter, return [] (no wrong-artist results).
+    ///
+    /// Phase 2 — SOFT SCORING (applied to hard-filter survivors):
+    ///   Jaccard similarity + title-word coverage + karaoke/cover penalty.
+    private static func filterByRelevance(
+        _ videos: [YouTubeVideo],
+        query: String,
+        artist: String? = nil
+    ) -> [YouTubeVideo] {
+
         let artistLower = artist?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        // Break artist into individual words for partial matching (e.g. "bad hop" → ["bad","hop"])
-        let artistWords = artistLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
-        // Key words from the track title
+        let artistWords = artistLower
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+
+        // ── Phase 1: Hard artist filter ─────────────────────────────────────
+        let candidates: [YouTubeVideo]
+        if !artistLower.isEmpty {
+            let withArtist = videos.filter { video in
+                let t = video.title.lowercased()
+                let c = video.channelTitle.lowercased()
+                // Accept if full artist name OR any artist word appears in title or channel
+                return t.contains(artistLower) || c.contains(artistLower)
+                    || artistWords.contains(where: { t.contains($0) || c.contains($0) })
+            }
+            // If no video passes, return nothing — never show wrong-artist results
+            guard !withArtist.isEmpty else { return [] }
+            candidates = withArtist
+        } else {
+            candidates = videos
+        }
+
+        // ── Phase 2: Soft scoring ─────────────────────────────────────────
         let queryWords = query.lowercased()
-            .components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
 
-        let scored = videos.map { video -> (YouTubeVideo, Double) in
+        let noiseTerms = ["カラオケ", "karaoke", "cover", "covers", "tribute",
+                          "instrumental", "歌ってみた", "うたってみた", "off vocal"]
+
+        let scored = candidates.map { video -> (YouTubeVideo, Double) in
             var score = similarity(video.title, query)
-            let titleLower   = video.title.lowercased()
-            let channelLower = video.channelTitle.lowercased()
+            let titleLower = video.title.lowercased()
 
+            // Bonus: artist name confirmed in title (more specific than channel)
             if !artistLower.isEmpty {
-                let inTitle   = titleLower.contains(artistLower)
+                let inTitle = titleLower.contains(artistLower)
                     || artistWords.contains(where: { titleLower.contains($0) })
-                let inChannel = channelLower.contains(artistLower)
-                    || artistWords.contains(where: { channelLower.contains($0) })
-
-                if inTitle {
-                    score += 0.5   // ✅ artist confirmed in title
-                } else if inChannel {
-                    score += 0.2   // 🟡 artist in channel name
-                } else {
-                    score -= 0.7   // ❌ artist name absent — strong filter
-                }
+                if inTitle { score += 0.3 }
             }
 
-            // Penalise if less than half the query words appear in the title
+            // Penalise weak title-word coverage
             if !queryWords.isEmpty {
                 let matched = queryWords.filter { titleLower.contains($0) }
-                if Double(matched.count) / Double(queryWords.count) < 0.4 {
-                    score -= 0.2
-                }
+                if Double(matched.count) / Double(queryWords.count) < 0.4 { score -= 0.2 }
             }
 
             // Karaoke / cover penalty
-            let noise = ["カラオケ", "karaoke", "cover", "covers", "tribute",
-                         "instrumental", "歌ってみた", "うたってみた", "off vocal"]
-            if noise.contains(where: { titleLower.contains($0) }) { score -= 0.5 }
+            if noiseTerms.contains(where: { titleLower.contains($0) }) { score -= 0.5 }
 
             return (video, score)
         }
 
-        // Return results sorted by score; apply minimum threshold only if ≥1 result passes
         let sorted = scored.sorted { $0.1 > $1.1 }
-        let aboveThreshold = sorted.filter { $0.1 >= 0.2 }
+        let aboveThreshold = sorted.filter { $0.1 >= 0.1 }
         return (aboveThreshold.isEmpty ? sorted : aboveThreshold).map { $0.0 }
     }
 }
