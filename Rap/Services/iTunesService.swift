@@ -42,7 +42,8 @@ struct iTunesService {
     // Predictive suggestions while user types title
     // Requires ALL words from the query to appear in trackName (or trackName+artistName)
     // to prevent "Drift (aespa)" appearing for "Kawasaki Drift" query.
-    static func searchByTitle(query: String, limit: Int = 10) async -> [iTunesTrack] {
+    // When artist is provided, further filters to tracks matching that artist.
+    static func searchByTitle(query: String, artist: String = "", limit: Int = 10) async -> [iTunesTrack] {
         guard query.count >= 2,
               let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return []
@@ -65,8 +66,23 @@ struct iTunesService {
         }
 
         // If strict filter yields nothing (e.g. Japanese title search), fall back to partial
-        let final = strict.isEmpty ? pool : strict
-        return Array(final.prefix(6))
+        let candidates = strict.isEmpty ? pool : strict
+
+        // If artist is provided, further restrict to matching artist
+        let artistTrimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !artistTrimmed.isEmpty {
+            let artistLower = artistTrimmed.lowercased()
+            let artistWords = artistLower
+                .components(separatedBy: .alphanumerics.inverted)
+                .filter { $0.count >= 2 }
+            let artistMatch = candidates.filter { track in
+                let a = track.artistName.lowercased()
+                return a.contains(artistLower) || artistWords.contains(where: { a.contains($0) })
+            }
+            if !artistMatch.isEmpty { return Array(artistMatch.prefix(6)) }
+        }
+
+        return Array(candidates.prefix(6))
     }
 
     // Best match for known title + artist (used after decode)

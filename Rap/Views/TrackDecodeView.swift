@@ -223,7 +223,7 @@ class TrackDetailViewModel {
         suggestTask = Task {
             try? await Task.sleep(nanoseconds: 350_000_000) // 350ms debounce
             guard !Task.isCancelled else { return }
-            let results = await iTunesService.searchByTitle(query: title)
+            let results = await iTunesService.searchByTitle(query: title, artist: self.artistText)
             if !Task.isCancelled {
                 suggestions = results
                 showSuggestions = !results.isEmpty
