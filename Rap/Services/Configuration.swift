@@ -7,8 +7,8 @@ import Foundation
 ///   1. At build time, Secrets.xcconfig injects keys into Info.plist via $(VARIABLE_NAME)
 ///   2. If a key is blank (xcconfig not set up yet), the user can enter it manually
 ///      in the app's Settings screen — stored in UserDefaults
-///   3. Services call Configuration.anthropicAPIKey etc. instead of reading Bundle directly
-struct Configuration {
+///   3. Services call AppConfiguration.anthropicAPIKey etc. instead of reading Bundle directly
+struct AppConfiguration {
 
     // MARK: - Keys
 

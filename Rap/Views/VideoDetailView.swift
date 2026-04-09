@@ -538,22 +538,7 @@ struct LyricLoadingView: View {
     }
 }
 
-// MARK: - Corner radius helper
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = 8
-    var corners: UIRectCorner = .allCorners
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners,
-                                cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
-    }
-}
+// RoundedCorner / cornerRadius(_:corners:) is defined in DesignSystem.swift
 
 // MARK: - ExplanationCard (kept for compatibility)
 struct ExplanationCard: View {

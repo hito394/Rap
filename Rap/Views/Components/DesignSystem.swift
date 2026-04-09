@@ -53,6 +53,27 @@ extension View {
     }
 }
 
+// MARK: - Corner radius helper (shared)
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
+    }
+}
+
 // MARK: - Section header
 struct SectionHeader: View {
     let title: String
@@ -86,7 +107,7 @@ struct GoldTag: View {
 struct PrimaryButtonStyle: ButtonStyle {
     var isLoading: Bool = false
 
-    func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: ButtonStyleConfiguration) -> some View {
         configuration.label
             .font(.system(.subheadline, weight: .bold))
             .foregroundColor(isLoading ? .gray : Color(hex: "#0d0d0d"))

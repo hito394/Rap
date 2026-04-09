@@ -641,9 +641,9 @@ struct LyricDeepDiveSheet: View {
 // MARK: - Server settings sheet
 struct ServerSettingsSheet: View {
     @State private var urlText = TranscriptionService.customServerURL
-    @State private var anthropicKey = Configuration.anthropicAPIKey
-    @State private var youtubeKey = Configuration.youtubeAPIKey
-    @State private var openaiKey = Configuration.openAIAPIKey
+    @State private var anthropicKey = AppConfiguration.anthropicAPIKey
+    @State private var youtubeKey = AppConfiguration.youtubeAPIKey
+    @State private var openaiKey = AppConfiguration.openAIAPIKey
     @State private var isChecking = false
     @State private var isDiscovering = false
     @State private var serverStatus: String? = nil
@@ -905,9 +905,9 @@ struct ServerSettingsSheet: View {
 
     private func saveAll() {
         TranscriptionService.customServerURL = urlText
-        Configuration.anthropicAPIKey = anthropicKey
-        Configuration.youtubeAPIKey = youtubeKey
-        Configuration.openAIAPIKey = openaiKey
+        AppConfiguration.anthropicAPIKey = anthropicKey
+        AppConfiguration.youtubeAPIKey = youtubeKey
+        AppConfiguration.openAIAPIKey = openaiKey
     }
 }
 

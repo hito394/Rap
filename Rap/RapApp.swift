@@ -18,7 +18,7 @@ struct RapApp: App {
             ContentView()
                 .preferredColorScheme(.dark)
                 .task {
-                    Configuration.debugPrint()          // Xcodeコンソールでキー確認
+                    AppConfiguration.debugPrint()          // Xcodeコンソールでキー確認
                     await TranscriptionService.autoDiscover()
                 }
         }

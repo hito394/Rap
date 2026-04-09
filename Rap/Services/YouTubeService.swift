@@ -27,7 +27,7 @@ enum YouTubeError: LocalizedError {
 struct YouTubeService {
     static let searchEndpoint = "https://www.googleapis.com/youtube/v3/search"
 
-    static var apiKey: String { Configuration.youtubeAPIKey }
+    static var apiKey: String { AppConfiguration.youtubeAPIKey }
 
     /// Build an optimized search query.
     /// For music queries with a known artist+title, formats as "Artist Title lyric official"
