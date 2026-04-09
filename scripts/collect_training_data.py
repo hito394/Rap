@@ -246,6 +246,23 @@ OUTPUT_DIR = Path("data/raw_transcripts")
 AUDIO_DIR = Path("data/raw_audio")
 MAX_PER_QUERY = 5  # 1クエリあたりの最大取得数
 
+# タイトルにこれらが含まれる場合は長さ制限を無視して必ず収集
+PRIORITY_KEYWORDS = [
+    "韻", "解説", "バース", "解読", "分析", "リリック", "歌詞解説",
+    "ライム", "フロー解説", "パンチライン", "ビーフ", "ディス",
+    "BAD HOP", "舐達麻", "般若", "ZORN", "漢", "T-PABLOW", "Awich",
+    "RHYMESTER", "ZEEBRA", "R指定", "晋平太", "DOTAMA", "BES",
+    "BADSAIKUSH", "DELTA9KID", "¥ellow Bucks", "BIM", "KOHH",
+    "Kendrick", "Eminem", "Jay-Z", "Nas", "Biggie", "Tupac",
+    "Wu-Tang", "Drake", "J Dilla", "Madlib", "DJ Premier",
+    "UMB", "KOK", "KING OF KINGS", "フリースタイルダンジョン",
+    "高校生RAP", "MCバトル", "cypher", "サイファー",
+]
+
+def is_priority(title: str) -> bool:
+    t = title.lower()
+    return any(kw.lower() in t for kw in PRIORITY_KEYWORDS)
+
 # ---------------------------------------------------------------------------
 
 def search_videos(query: str, limit: int) -> list[dict]:
@@ -398,14 +415,18 @@ def collect(include_audio: bool = False):
             success += 1
             continue
 
-        if duration and duration < 60:
-            print(f"  ✗ スキップ: {duration}秒 < 60秒（短すぎる）")
-            skipped += 1
-            continue
-        if duration and duration > 7200:
-            print(f"  ✗ スキップ: {duration}秒 > 7200秒（2時間超）")
-            skipped += 1
-            continue
+        priority = is_priority(video["title"])
+        if priority:
+            print("  ⭐ 優先タグ一致 → 長さ制限スキップ")
+        else:
+            if duration and duration < 60:
+                print(f"  ✗ スキップ: {duration}秒 < 60秒（短すぎる）")
+                skipped += 1
+                continue
+            if duration and duration > 7200:
+                print(f"  ✗ スキップ: {duration}秒 > 7200秒（2時間超）")
+                skipped += 1
+                continue
 
         try:
             segments = []
