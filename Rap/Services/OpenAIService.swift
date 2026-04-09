@@ -3,9 +3,7 @@ import Foundation
 struct OpenAIService {
     static let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
 
-    static var apiKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
-    }
+    static var apiKey: String { Configuration.openAIAPIKey }
 
     static var isAvailable: Bool { !apiKey.isEmpty && apiKey != "your_openai_api_key_here" }
 

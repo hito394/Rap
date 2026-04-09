@@ -38,6 +38,7 @@
 		AA100001D /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001D /* OpenAIService.swift */; };
 		AA100001E /* LrcLibService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001E /* LrcLibService.swift */; };
 		AA100001F /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001F /* TranscriptionService.swift */; };
+		AA1000020 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000020 /* Configuration.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,7 +73,9 @@
 		AB100001D /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
 		AB100001E /* LrcLibService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LrcLibService.swift; sourceTree = "<group>"; };
 		AB100001F /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
+		AB1000020 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AC100020 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = Config/Secrets.xcconfig; sourceTree = SOURCE_ROOT; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -119,6 +122,7 @@
 				AB100001D /* OpenAIService.swift */,
 				AB100001E /* LrcLibService.swift */,
 				AB100001F /* TranscriptionService.swift */,
+				AB1000020 /* Configuration.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -166,11 +170,21 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		AD1000010 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				AC100020 /* Secrets.xcconfig */,
+			);
+			name = Config;
+			path = Config;
+			sourceTree = "<group>";
+		};
 		AD1000000 /* main group */ = {
 			isa = PBXGroup;
 			children = (
 				AD1000001 /* Rap */,
 				AD1000002 /* Products */,
+				AD1000010 /* Config */,
 			);
 			sourceTree = "<group>";
 		};
@@ -274,6 +288,7 @@
 				AA100001D /* OpenAIService.swift in Sources */,
 				AA100001E /* LrcLibService.swift in Sources */,
 				AA100001F /* TranscriptionService.swift in Sources */,
+				AA1000020 /* Configuration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,6 +413,7 @@
 		};
 		B1000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AC100020 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -417,13 +433,15 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ANTHROPIC_API_KEY = "";
-				YOUTUBE_API_KEY = "";
+				ANTHROPIC_API_KEY = "$(ANTHROPIC_API_KEY)";
+				YOUTUBE_API_KEY = "$(YOUTUBE_API_KEY)";
+				OPENAI_API_KEY = "$(OPENAI_API_KEY)";
 			};
 			name = Debug;
 		};
 		B1000004 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AC100020 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -443,8 +461,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ANTHROPIC_API_KEY = "";
-				YOUTUBE_API_KEY = "";
+				ANTHROPIC_API_KEY = "$(ANTHROPIC_API_KEY)";
+				YOUTUBE_API_KEY = "$(YOUTUBE_API_KEY)";
+				OPENAI_API_KEY = "$(OPENAI_API_KEY)";
 			};
 			name = Release;
 		};

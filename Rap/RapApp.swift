@@ -17,6 +17,10 @@ struct RapApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(.dark)
+                .task {
+                    // Auto-discover Mac server URL in background at launch
+                    await TranscriptionService.autoDiscover()
+                }
         }
         .modelContainer(sharedModelContainer)
     }

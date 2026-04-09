@@ -640,94 +640,27 @@ struct LyricDeepDiveSheet: View {
 
 // MARK: - Server settings sheet
 struct ServerSettingsSheet: View {
-    @State private var urlText = TranscriptionService.serverURL
+    @State private var urlText = TranscriptionService.customServerURL
+    @State private var anthropicKey = Configuration.anthropicAPIKey
+    @State private var youtubeKey = Configuration.youtubeAPIKey
+    @State private var openaiKey = Configuration.openAIAPIKey
     @State private var isChecking = false
-    @State private var status: String? = nil
+    @State private var isDiscovering = false
+    @State private var serverStatus: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // URL input section
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("MacサーバーURL")
-                            .font(.system(.caption, weight: .semibold))
-                            .foregroundColor(Color.gold)
-                            .padding(.horizontal, 4)
-
-                        Text("MacでサーバーをONにしてから、表示されたIPアドレスを入力してください。")
-                            .font(.system(.caption))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 4)
-
-                        HStack(spacing: 8) {
-                            TextField("http://192.168.x.x:8765", text: $urlText)
-                                .font(.system(.body, design: .monospaced))
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .foregroundColor(.white)
-                                .tint(Color.gold)
-                                .padding(12)
-                                .background(Color.white.opacity(0.08))
-                                .cornerRadius(10)
-                                .overlay(RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.gold.opacity(0.3), lineWidth: 1))
-
-                            if !urlText.isEmpty {
-                                Button {
-                                    urlText = ""
-                                    status = nil
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray)
-                                        .font(.system(size: 18))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-
-                        if let s = status {
-                            Label(s, systemImage: s.contains("✅") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundColor(s.contains("✅") ? .green : .red)
-                                .padding(.horizontal, 4)
-                        }
-                    }
-                    .padding(16)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1))
-
-                    // Startup instructions section
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("サーバーの起動方法")
-                            .font(.system(.caption, weight: .semibold))
-                            .foregroundColor(Color.gold)
-
-                        Text("起動コマンド (Macのターミナル):")
-                            .font(.system(.caption))
-                            .foregroundColor(.gray)
-
-                        Text("cd ~/Rap/scripts\npip install -r requirements.txt\npython server.py")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Color.gold)
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.black)
-                            .cornerRadius(8)
-                    }
-                    .padding(16)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1))
+                VStack(alignment: .leading, spacing: 20) {
+                    serverSection
+                    apiKeysSection
+                    startupGuideSection
                 }
                 .padding(20)
             }
             .background(Color.appBackground)
-            .navigationTitle("Macサーバー設定")
+            .navigationTitle("設定")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -736,36 +669,215 @@ struct ServerSettingsSheet: View {
                     Button("キャンセル") { dismiss() }.foregroundColor(.gray)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            Task {
-                                isChecking = true
-                                status = nil
-                                TranscriptionService.serverURL = urlText
-                                let ok = await TranscriptionService.checkHealth()
-                                status = ok ? "✅ 接続成功！" : "❌ 接続できませんでした"
-                                isChecking = false
-                            }
-                        } label: {
-                            if isChecking {
-                                ProgressView().tint(Color.gold).scaleEffect(0.8)
-                            } else {
-                                Text("テスト").foregroundColor(Color.gold)
-                            }
-                        }
-                        .disabled(urlText.isEmpty || isChecking)
-
-                        Button("保存") {
-                            TranscriptionService.serverURL = urlText
-                            dismiss()
-                        }
+                    Button("保存") { saveAll(); dismiss() }
                         .foregroundColor(Color.gold)
                         .fontWeight(.bold)
-                        .disabled(urlText.isEmpty)
-                    }
                 }
             }
         }
+    }
+
+    // MARK: - Sections
+
+    private var serverSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Macサーバー", systemImage: "server.rack")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundColor(Color.gold)
+
+            // Auto-detect status
+            HStack(spacing: 8) {
+                let resolved = TranscriptionService.serverURL
+                Circle()
+                    .fill(resolved.isEmpty ? Color.red : Color.green)
+                    .frame(width: 8, height: 8)
+                if resolved.isEmpty {
+                    Text("未接続 — Macでサーバーを起動してください")
+                        .font(.system(.caption))
+                        .foregroundColor(.gray)
+                } else {
+                    Text("自動検出: \(resolved)")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Button {
+                    Task {
+                        isDiscovering = true
+                        await TranscriptionService.autoDiscover()
+                        isDiscovering = false
+                    }
+                } label: {
+                    if isDiscovering {
+                        ProgressView().tint(Color.gold).scaleEffect(0.7)
+                    } else {
+                        Text("再検出")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(Color.gold)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isDiscovering)
+            }
+
+            // Manual override URL
+            VStack(alignment: .leading, spacing: 6) {
+                Text("手動URL（任意）")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.gray)
+                Text("空欄のままにすると自動検出を使用します")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray.opacity(0.6))
+                HStack(spacing: 8) {
+                    TextField("http://192.168.x.x:8765", text: $urlText)
+                        .font(.system(.body, design: .monospaced))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .foregroundColor(.white)
+                        .tint(Color.gold)
+                        .padding(11)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gold.opacity(0.3), lineWidth: 1))
+                    if !urlText.isEmpty {
+                        Button { urlText = ""; serverStatus = nil } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                // Test button
+                HStack {
+                    if let s = serverStatus {
+                        Label(s, systemImage: s.contains("✅") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundColor(s.contains("✅") ? .green : .red)
+                    }
+                    Spacer()
+                    Button {
+                        Task {
+                            isChecking = true
+                            serverStatus = nil
+                            let testURL = urlText.isEmpty ? TranscriptionService.serverURL : urlText
+                            guard !testURL.isEmpty else {
+                                serverStatus = "❌ URLが未設定です"
+                                isChecking = false
+                                return
+                            }
+                            TranscriptionService.customServerURL = urlText
+                            let ok = await TranscriptionService.checkHealth()
+                            serverStatus = ok ? "✅ 接続成功！" : "❌ 接続できませんでした"
+                            isChecking = false
+                        }
+                    } label: {
+                        if isChecking {
+                            ProgressView().tint(Color.gold).scaleEffect(0.8)
+                        } else {
+                            Text("接続テスト")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(Color.gold)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isChecking)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08), lineWidth: 1))
+    }
+
+    private var apiKeysSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("APIキー", systemImage: "key.fill")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundColor(Color.gold)
+
+            Text("キーを入力するとアプリに保存されます。Secrets.xcconfig でも設定可能です。")
+                .font(.system(.caption))
+                .foregroundColor(.gray)
+
+            apiKeyField(label: "Anthropic (Claude)", placeholder: "sk-ant-...", text: $anthropicKey,
+                        isSet: Configuration.isAnthropicConfigured)
+            apiKeyField(label: "YouTube Data API v3", placeholder: "AIza...", text: $youtubeKey,
+                        isSet: Configuration.isYouTubeConfigured)
+            apiKeyField(label: "OpenAI (GPT)", placeholder: "sk-...", text: $openaiKey,
+                        isSet: Configuration.isOpenAIConfigured)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func apiKeyField(label: String, placeholder: String, text: Binding<String>, isSet: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+                Circle()
+                    .fill(isSet ? Color.green : Color.red.opacity(0.7))
+                    .frame(width: 7, height: 7)
+                Text(isSet ? "設定済み" : "未設定")
+                    .font(.system(size: 10))
+                    .foregroundColor(isSet ? .green : .red.opacity(0.8))
+            }
+            SecureField(placeholder, text: text)
+                .font(.system(.caption, design: .monospaced))
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .foregroundColor(.white)
+                .tint(Color.gold)
+                .padding(10)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSet ? Color.green.opacity(0.3) : Color.white.opacity(0.12), lineWidth: 1))
+        }
+    }
+
+    private var startupGuideSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("サーバー起動方法", systemImage: "terminal.fill")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundColor(Color.gold)
+
+            Text("Macのターミナルで以下を実行:")
+                .font(.system(.caption))
+                .foregroundColor(.gray)
+
+            Text("cd ~/Rap/scripts\npip install -r requirements.txt\npython server.py")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundColor(Color.gold)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.black)
+                .cornerRadius(8)
+
+            Text("起動後、アプリが自動的にサーバーを検出します。\n実機使用時はMacと同じWi-Fiに接続してください。")
+                .font(.system(.caption))
+                .foregroundColor(.gray)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08), lineWidth: 1))
+    }
+
+    // MARK: - Save
+
+    private func saveAll() {
+        TranscriptionService.customServerURL = urlText
+        Configuration.anthropicAPIKey = anthropicKey
+        Configuration.youtubeAPIKey = youtubeKey
+        Configuration.openAIAPIKey = openaiKey
     }
 }
 

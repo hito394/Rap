@@ -1,0 +1,53 @@
+import Foundation
+
+/// Centralized API key store.
+/// Priority: Info.plist (xcconfig/Build Settings) → UserDefaults (entered in-app Settings)
+///
+/// How it works:
+///   1. At build time, Secrets.xcconfig injects keys into Info.plist via $(VARIABLE_NAME)
+///   2. If a key is blank (xcconfig not set up yet), the user can enter it manually
+///      in the app's Settings screen — stored in UserDefaults
+///   3. Services call Configuration.anthropicAPIKey etc. instead of reading Bundle directly
+struct Configuration {
+
+    // MARK: - Keys
+
+    static var anthropicAPIKey: String {
+        get { resolve("ANTHROPIC_API_KEY", udKey: "apiKey_anthropic") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_anthropic") }
+    }
+
+    static var youtubeAPIKey: String {
+        get { resolve("YOUTUBE_API_KEY", udKey: "apiKey_youtube") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_youtube") }
+    }
+
+    static var openAIAPIKey: String {
+        get { resolve("OPENAI_API_KEY", udKey: "apiKey_openai") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_openai") }
+    }
+
+    // MARK: - Validation helpers
+
+    static var isAnthropicConfigured: Bool { !anthropicAPIKey.isEmpty }
+    static var isYouTubeConfigured: Bool { !youtubeAPIKey.isEmpty }
+    static var isOpenAIConfigured: Bool { !openAIAPIKey.isEmpty }
+
+    // MARK: - Private
+
+    /// Reads from Info.plist first; falls back to UserDefaults if the plist value is empty
+    /// (happens when xcconfig wasn't set up at build time).
+    private static func resolve(_ infoPlistKey: String, udKey: String) -> String {
+        let fromPlist = (Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String ?? "").trimmed
+        if !fromPlist.isEmpty && !fromPlist.hasPrefix("$(") {
+            return fromPlist  // xcconfig value injected successfully
+        }
+        return (UserDefaults.standard.string(forKey: udKey) ?? "").trimmed
+    }
+}
+
+private extension String {
+    var trimmed: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}

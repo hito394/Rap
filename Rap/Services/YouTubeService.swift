@@ -27,20 +27,24 @@ enum YouTubeError: LocalizedError {
 struct YouTubeService {
     static let searchEndpoint = "https://www.googleapis.com/youtube/v3/search"
 
-    static var apiKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "YOUTUBE_API_KEY") as? String ?? ""
-    }
+    static var apiKey: String { Configuration.youtubeAPIKey }
 
     /// Build an optimized search query.
-    /// For music queries, appends "Official Music Video OR Lyric Video OR MV" to surface official content first.
-    static func buildQuery(_ raw: String) -> String {
+    /// For music queries with a known artist+title, formats as "Artist Title lyric official"
+    /// to surface the correct official content and avoid karaoke/cover results.
+    static func buildQuery(_ raw: String, artist: String? = nil) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Avoid double-appending if user already specified video type keywords
         let lowerRaw = trimmed.lowercased()
         let alreadySpecific = ["official", "lyric", "mv", "battle", "バトル", "cypher", "サイファー",
                                "freestyle", "フリースタイル", "documentary"].contains(where: lowerRaw.contains)
         if alreadySpecific { return trimmed }
-        return "\(trimmed) Official Music Video OR Lyric Video"
+
+        // If artist is provided and not already in the query, prepend it
+        if let artist = artist?.trimmingCharacters(in: .whitespacesAndNewlines), !artist.isEmpty,
+           !lowerRaw.contains(artist.lowercased()) {
+            return "\(artist) \(trimmed) lyric official"
+        }
+        return "\(trimmed) lyric official"
     }
 
     /// Similarity score between two strings (Jaccard on word tokens, 0.0–1.0).
@@ -58,10 +62,15 @@ struct YouTubeService {
         return Double(intersection) / Double(union)
     }
 
-    static func search(query: String, maxResults: Int = 15) async throws -> [YouTubeVideo] {
+    /// Search YouTube videos.
+    /// - Parameters:
+    ///   - query: Search query (song title or free-form)
+    ///   - artist: Optional artist name used to sharpen the query and filter results
+    ///   - maxResults: Max number of results to request
+    static func search(query: String, artist: String? = nil, maxResults: Int = 15) async throws -> [YouTubeVideo] {
         guard !apiKey.isEmpty else { throw YouTubeError.invalidAPIKey }
 
-        let optimizedQuery = buildQuery(query)
+        let optimizedQuery = buildQuery(query, artist: artist)
 
         var components = URLComponents(string: searchEndpoint)!
         components.queryItems = [
@@ -115,19 +124,34 @@ struct YouTubeService {
 
         let videos = result.items.compactMap { $0.toVideo() }
         guard !videos.isEmpty else { throw YouTubeError.noResults }
-        return filterByRelevance(videos, query: query)
+        return filterByRelevance(videos, query: query, artist: artist)
     }
 
-    /// Filter out clearly irrelevant results using title similarity.
-    /// Keeps results with similarity ≥ 0.1 (very permissive), sorted by relevance.
-    private static func filterByRelevance(_ videos: [YouTubeVideo], query: String) -> [YouTubeVideo] {
+    /// Filter and rank results by relevance.
+    /// When artist is provided, strongly prefer videos whose title contains the artist name.
+    private static func filterByRelevance(_ videos: [YouTubeVideo], query: String, artist: String? = nil) -> [YouTubeVideo] {
         let threshold = 0.08
+        let artistLower = artist?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
         let scored = videos.map { video -> (YouTubeVideo, Double) in
-            let score = similarity(video.title, query)
+            var score = similarity(video.title, query)
+            let titleLower = video.title.lowercased()
+
+            // Boost: artist name appears in video title
+            if !artistLower.isEmpty && titleLower.contains(artistLower) {
+                score += 0.4
+            }
+            // Penalty: karaoke / cover / tribute detected in title
+            let noiseWords = ["カラオケ", "karaoke", "cover", "covers", "tribute",
+                              "instrumental", "歌ってみた", "うたってみた", "off vocal"]
+            if noiseWords.contains(where: { titleLower.contains($0) }) {
+                score -= 0.5
+            }
             return (video, score)
         }
+
         let filtered = scored.filter { $0.1 >= threshold }
-        if filtered.isEmpty { return videos } // fallback: return all if nothing passes
-        return filtered.sorted { $0.1 > $1.1 }.map { $0.0 }
+        let pool = filtered.isEmpty ? scored : filtered
+        return pool.sorted { $0.1 > $1.1 }.map { $0.0 }
     }
 }
