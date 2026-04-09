@@ -19,7 +19,7 @@ enum AnthropicError: LocalizedError {
 }
 
 struct AnthropicService {
-    static let model = "claude-sonnet-4-20250514"
+    static let model = "claude-sonnet-4-6"
     static let endpoint = "https://api.anthropic.com/v1/messages"
 
     static var apiKey: String { AppConfiguration.anthropicAPIKey }
