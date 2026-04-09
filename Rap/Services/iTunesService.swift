@@ -40,6 +40,8 @@ struct iTunesService {
     }
 
     // Predictive suggestions while user types title
+    // Requires ALL words from the query to appear in trackName (or trackName+artistName)
+    // to prevent "Drift (aespa)" appearing for "Kawasaki Drift" query.
     static func searchByTitle(query: String, limit: Int = 10) async -> [iTunesTrack] {
         guard query.count >= 2,
               let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
@@ -48,9 +50,23 @@ struct iTunesService {
         let results = await fetch(
             "https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&entity=song&limit=\(limit)"
         )
-        // カラオケ・カバーを除外して最大6件返す
-        let filtered = results.filter { !isNoise($0) }
-        return Array((filtered.isEmpty ? results : filtered).prefix(6))
+        let clean = results.filter { !isNoise($0) }
+        let pool = clean.isEmpty ? results : clean
+
+        // Split query into meaningful words (≥2 chars)
+        let queryWords = query.lowercased()
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+
+        // Strict: ALL query words must appear somewhere in trackName+artistName
+        let strict = pool.filter { track in
+            let combined = "\(track.trackName) \(track.artistName)".lowercased()
+            return queryWords.allSatisfy { combined.contains($0) }
+        }
+
+        // If strict filter yields nothing (e.g. Japanese title search), fall back to partial
+        let final = strict.isEmpty ? pool : strict
+        return Array(final.prefix(6))
     }
 
     // Best match for known title + artist (used after decode)

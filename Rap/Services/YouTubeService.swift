@@ -29,6 +29,25 @@ struct YouTubeService {
 
     static var apiKey: String { AppConfiguration.youtubeAPIKey }
 
+    /// Known Japanese rap artists / groups for artist extraction from free-form queries.
+    private static let knownArtists: [String] = [
+        "bad hop", "badhop", "kohh", "loota", "awich", "creepy nuts",
+        "r-指定", "dj松永", "舐達麻", "漢 a.k.a. gami", "般若", "zorn", "punpee",
+        "仙人掌", "唾奇", "daichi yamamoto", "anarchy", "ak-69", "ak69",
+        "seeda", "呂布カルマ", "dotama", "晋平太", "t-pablow", "yzerr",
+        "benjazzy", "yellow pato", "tiji jojo", "g-k.i.d", "keny",
+        "buddha brand", "rip slyme", "ozrosaurus", "nitro microphone",
+        "msc", "kgdr", "キングギドラ", "ライムスター", "rhymester",
+        "stillichimiya", "issugi", "jjj", "omsb", "in the city of music",
+    ]
+
+    /// Try to detect a known artist name inside a free-form search string.
+    /// Returns the artist string if found, nil otherwise.
+    static func extractArtistFromQuery(_ query: String) -> String? {
+        let q = query.lowercased()
+        return knownArtists.first { q.contains($0) }
+    }
+
     /// Build an optimized search query.
     /// For music queries with a known artist+title, formats as "Artist Title lyric official"
     /// to surface the correct official content and avoid karaoke/cover results.

@@ -48,9 +48,12 @@ class VideoSearchViewModel {
         }
 
         // 2. YouTube Data API fallback
+        // Try to detect artist name in the query (e.g. "BAD HOP Kawasaki Drift")
+        // so filterByRelevance can apply strict artist-name validation.
         if !YouTubeService.apiKey.isEmpty {
             do {
-                videos = try await YouTubeService.search(query: q)
+                let detectedArtist = YouTubeService.extractArtistFromQuery(q)
+                videos = try await YouTubeService.search(query: q, artist: detectedArtist)
             } catch {
                 toastMessage = (error as? YouTubeError)?.errorDescription ?? "接続を確認してください"
             }
