@@ -65,8 +65,17 @@ struct iTunesService {
             return queryWords.allSatisfy { combined.contains($0) }
         }
 
-        // If strict filter yields nothing (e.g. Japanese title search), fall back to partial
-        let candidates = strict.isEmpty ? pool : strict
+        // For multi-word queries, NEVER fall back to pool when strict is empty.
+        // "Kawasaki Drift" strict=empty → return [] rather than showing KAWASAKI(Big Sean).
+        // For single-word or Japanese queries, fall back is acceptable.
+        let isMultiWord = queryWords.count >= 2
+        let candidates: [iTunesTrack]
+        if strict.isEmpty {
+            if isMultiWord { return [] }
+            candidates = pool
+        } else {
+            candidates = strict
+        }
 
         // If artist is provided, further restrict to matching artist
         let artistTrimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
