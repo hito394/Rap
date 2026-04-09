@@ -731,16 +731,16 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
     static func decodeTrack(
         title: String,
         artist: String,
-        level: ExpertiseLevel = .intermediate
+        level: ExpertiseLevel = .intermediate,
+        mbInfo: MBTrackInfo? = nil
     ) async throws -> String {
         let profile = artistProfileBlock(artist)
         let system = trackSystemPrompt(level: level) + artistLockBlock(title: title, artist: artist)
-        let userContent = """
-曲名: \(title)
-アーティスト: \(artist)
-\(profile)
-まず上記アーティストのプロフィール・出身・スタイルを確認し、その背景がこの曲にどう反映されているかを踏まえて解析してください。
-"""
+        var userContent = "曲名: \(title)\nアーティスト: \(artist)\n\(profile)"
+        if let mb = mbInfo {
+            userContent += "\n【MusicBrainz確認済みメタデータ】\n\(mb.promptSummary)\n"
+        }
+        userContent += "\nまず上記アーティストのプロフィール・出身・スタイルを確認し、その背景がこの曲にどう反映されているかを踏まえて解析してください。"
         let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: system, messages: messages)
     }
@@ -750,7 +750,8 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         title: String,
         artist: String,
         lyrics: String,
-        level: ExpertiseLevel = .intermediate
+        level: ExpertiseLevel = .intermediate,
+        mbInfo: MBTrackInfo? = nil
     ) async throws -> String {
         let profile = artistProfileBlock(artist)
         let system = trackSystemPrompt(level: level) + artistLockBlock(title: title, artist: artist) + """
@@ -758,15 +759,11 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
 【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
 歌詞は全ライン漏れなくkey_barsに含めること。
 """
-        let userContent = """
-曲名: \(title)
-アーティスト: \(artist)
-\(profile)
-【実際の歌詞】
-\(lyrics)
-
-上記アーティストのプロフィール・出身背景を踏まえて、歌詞の全ラインを解析してください。
-"""
+        var userContent = "曲名: \(title)\nアーティスト: \(artist)\n\(profile)"
+        if let mb = mbInfo {
+            userContent += "\n【MusicBrainz確認済みメタデータ】\n\(mb.promptSummary)\n"
+        }
+        userContent += "\n【実際の歌詞】\n\(lyrics)\n\n上記アーティストのプロフィール・出身背景を踏まえて、歌詞の全ラインを解析してください。"
         let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: system, messages: messages)
     }

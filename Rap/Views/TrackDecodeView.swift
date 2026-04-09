@@ -307,23 +307,24 @@ class TrackDetailViewModel {
 
         let level = expertiseLevel  // capture at decode time
 
-        // Fetch lyrics + iTunes in parallel
-        async let lrcResult = LrcLibService.search(title: titleText, artist: artistText)
+        // Fetch lyrics + iTunes + MusicBrainz metadata in parallel
+        async let lrcResult    = LrcLibService.search(title: titleText, artist: artistText)
         async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
+        async let mbResult     = MusicBrainzService.lookupTrack(title: titleText, artist: artistText)
 
-        let (lrcTrack, itunesTrack) = await (lrcResult, itunesResult)
+        let (lrcTrack, _, mbInfo) = await (lrcResult, itunesResult, mbResult)
 
         do {
             let raw: String
             if let lrc = lrcTrack, let lyrics = lrc.syncedLyrics ?? lrc.plainLyrics, !lyrics.isEmpty {
                 // LrcLib歌詞あり → レベル指定でClaudeが解析
                 raw = try await AnthropicService.decodeTrackWithActualLyrics(
-                    title: titleText, artist: artistText, lyrics: lyrics, level: level
+                    title: titleText, artist: artistText, lyrics: lyrics, level: level, mbInfo: mbInfo
                 )
             } else {
                 // フォールバック: Claudeの知識ベース解析 (レベル指定あり)
                 raw = try await AnthropicService.decodeTrack(
-                    title: titleText, artist: artistText, level: level
+                    title: titleText, artist: artistText, level: level, mbInfo: mbInfo
                 )
             }
             rawResult = raw
