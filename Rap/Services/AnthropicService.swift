@@ -215,6 +215,10 @@ KOHH/Loota（T-Pablowの兄弟）。トラップスタイルと川崎ストリ�
         }
         return trackSystemPrompt + levelBlock
     }
+
+    // MARK: - Free search system prompt
+
+    static let freeSystemPrompt = """
 あなたは日本語ラップ・ヒップホップカルチャーの最高権威です。\
 初心者への丁寧な説明から、マニア向けの深い技術論まで、相手のレベルに合わせて答えます。
 
