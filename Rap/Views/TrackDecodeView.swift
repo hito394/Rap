@@ -2,6 +2,196 @@ import SwiftUI
 import SwiftData
 import AVFoundation
 
+// MARK: - Kana vowel helpers for rhyme detection
+
+/// Maps hiragana/katakana characters to their vowel sound (a/i/u/e/o)
+private let kanaVowelTable: [Character: Character] = {
+    var m: [Character: Character] = [
+        // あ行 a-vowel
+        "あ": "a", "ぁ": "a", "か": "a", "が": "a", "さ": "a", "ざ": "a",
+        "た": "a", "だ": "a", "な": "a", "は": "a", "ば": "a", "ぱ": "a",
+        "ま": "a", "や": "a", "ゃ": "a", "ら": "a", "わ": "a", "ゎ": "a",
+        // い行 i-vowel
+        "い": "i", "ぃ": "i", "き": "i", "ぎ": "i", "し": "i", "じ": "i",
+        "ち": "i", "ぢ": "i", "に": "i", "ひ": "i", "び": "i", "ぴ": "i",
+        "み": "i", "り": "i",
+        // う行 u-vowel
+        "う": "u", "ぅ": "u", "く": "u", "ぐ": "u", "す": "u", "ず": "u",
+        "つ": "u", "づ": "u", "ぬ": "u", "ふ": "u", "ぶ": "u", "ぷ": "u",
+        "む": "u", "ゆ": "u", "ゅ": "u", "る": "u", "ゔ": "u",
+        // え行 e-vowel
+        "え": "e", "ぇ": "e", "け": "e", "げ": "e", "せ": "e", "ぜ": "e",
+        "て": "e", "で": "e", "ね": "e", "へ": "e", "べ": "e", "ぺ": "e",
+        "め": "e", "れ": "e",
+        // お行 o-vowel
+        "お": "o", "ぉ": "o", "こ": "o", "ご": "o", "そ": "o", "ぞ": "o",
+        "と": "o", "ど": "o", "の": "o", "ほ": "o", "ぼ": "o", "ぽ": "o",
+        "も": "o", "よ": "o", "ょ": "o", "ろ": "o", "を": "o",
+    ]
+    // Add katakana by offsetting hiragana codepoints by 0x60
+    // Iterate over a snapshot to avoid mutating-during-iteration
+    let hiraganaBase: UInt32 = 0x3041
+    let katakanaBase: UInt32 = 0x30A1
+    for (hc, vowel) in Array(m) {
+        if let s = hc.unicodeScalars.first,
+           s.value >= hiraganaBase,
+           let ks = Unicode.Scalar(katakanaBase + (s.value - hiraganaBase)) {
+            m[Character(ks)] = vowel
+        }
+    }
+    return m
+}()
+
+/// Extract trailing vowel pattern (last `count` vowel sounds) from a token
+private func trailingVowels(_ token: String, count: Int = 2) -> String {
+    String(token.compactMap { kanaVowelTable[$0] }.suffix(count))
+}
+
+// MARK: - Rhyme Highlighted Text View
+
+/// Displays a lyric bar with rhyming words color-coded by shared trailing-vowel pattern
+struct RhymeHighlightedText: View {
+    let text: String
+
+    static let palette: [Color] = [
+        Color(hex: "#FFD700"), // gold
+        Color(hex: "#FF6B6B"), // coral
+        Color(hex: "#4ECDC4"), // teal
+        Color(hex: "#95E075"), // lime
+        Color(hex: "#C792EA"), // purple
+        Color(hex: "#F78C6C"), // peach
+    ]
+
+    var body: some View {
+        buildText()
+            .fixedSize(horizontal: false, vertical: true)
+            .lineSpacing(5)
+    }
+
+    private func buildText() -> Text {
+        let cmap = rhymeColorMap()
+        let parts = tokenize(text)
+        return parts.reduce(Text("")) { result, token in
+            if let color = cmap[token] {
+                return result + Text(token)
+                    .foregroundColor(color)
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+            } else {
+                return result + Text(token)
+                    .foregroundColor(.white.opacity(0.9))
+                    .font(.system(size: 16, weight: .regular, design: .monospaced))
+            }
+        }
+    }
+
+    /// Tokenize text into word/separator parts preserving all characters
+    private func tokenize(_ text: String) -> [String] {
+        let seps: Set<Character> = [" ", "　", "「", "」", "『", "』",
+                                     "。", "、", "・", "…", "／", "\n", "〜",
+                                     "!", "?", "！", "？", ",", "."]
+        var tokens: [String] = []
+        var current = ""
+        for c in text {
+            if seps.contains(c) {
+                if !current.isEmpty { tokens.append(current); current = "" }
+                tokens.append(String(c))
+            } else {
+                current.append(c)
+            }
+        }
+        if !current.isEmpty { tokens.append(current) }
+        return tokens
+    }
+
+    /// Build a token→Color map for words that share a 2+ vowel trailing pattern
+    private func rhymeColorMap() -> [String: Color] {
+        let words = tokenize(text).filter { token in
+            // Only actual words (has at least one kana)
+            token.contains(where: { kanaVowelTable[$0] != nil })
+        }
+        var groups: [String: [String]] = [:]
+        for word in words {
+            let key = trailingVowels(word, count: 2)
+            guard key.count >= 2 else { continue }
+            groups[key, default: []].append(word)
+        }
+        var colorMap: [String: Color] = [:]
+        var colorIdx = 0
+        for key in groups.keys.sorted() {
+            let groupWords = groups[key]!
+            guard groupWords.count >= 2 else { continue }
+            let color = Self.palette[colorIdx % Self.palette.count]
+            colorIdx += 1
+            for w in groupWords { colorMap[w] = color }
+        }
+        return colorMap
+    }
+}
+
+// MARK: - Rhyme Legend (shows which vowel patterns rhyme)
+struct RhymeLegend: View {
+    let text: String
+
+    var body: some View {
+        legendContent()
+    }
+
+    @ViewBuilder
+    private func legendContent() -> some View {
+        let groups = rhymeGroups()
+        if !groups.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 4) {
+                    Image(systemName: "waveform.path")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Text("韻パターン")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+                FlowLayout(spacing: 6) {
+                    ForEach(Array(groups.enumerated()), id: \.offset) { idx, entry in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(RhymeHighlightedText.palette[idx % RhymeHighlightedText.palette.count])
+                                .frame(width: 7, height: 7)
+                            Text(entry.words.joined(separator: "・"))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.7))
+                            Text("(\(entry.pattern))")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+            .padding(10)
+            .background(Color.white.opacity(0.04))
+            .cornerRadius(8)
+        }
+    }
+
+    private struct RhymeEntry { let pattern: String; let words: [String] }
+
+    private func rhymeGroups() -> [RhymeEntry] {
+        let seps: Set<Character> = [" ", "　", "「", "」", "『", "』",
+                                     "。", "、", "・", "…", "／", "\n", "〜",
+                                     "!", "?", "！", "？", ",", "."]
+        let words = text.split { seps.contains($0) }.map(String.init)
+            .filter { $0.contains(where: { kanaVowelTable[$0] != nil }) }
+        var groups: [String: [String]] = [:]
+        for word in words {
+            let key = trailingVowels(word, count: 2)
+            guard key.count >= 2 else { continue }
+            groups[key, default: []].append(word)
+        }
+        return groups.compactMap { (key, words) -> RhymeEntry? in
+            guard words.count >= 2 else { return nil }
+            return RhymeEntry(pattern: key, words: Array(Set(words)).sorted())
+        }.sorted { $0.pattern < $1.pattern }
+    }
+}
+
 @Observable
 class TrackDetailViewModel {
     var titleText = ""
@@ -11,6 +201,7 @@ class TrackDetailViewModel {
     var rawResult: String?
     var toastMessage: String?
     var selectedTab = 0
+    var selectedLevel = 1  // 0=初心者 1=中級者 2=上級者
 
     // iTunes
     var iTunesTrack: iTunesTrack? = nil
@@ -315,26 +506,51 @@ struct TrackDecodeView: View {
         }
     }
 
-    // MARK: Tab 1: Bars (tappable slang)
+    // MARK: Tab 1: Bars (tappable slang + level picker)
     @ViewBuilder
     private func barsTab(_ r: TrackDecode) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !vm.allSlangs.isEmpty {
+        VStack(alignment: .leading, spacing: 10) {
+            // Level picker
+            HStack(spacing: 0) {
+                ForEach(Array(["初心者", "中級者", "上級者"].enumerated()), id: \.offset) { idx, label in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { vm.selectedLevel = idx }
+                    } label: {
+                        Text(label)
+                            .font(.system(size: 11, weight: vm.selectedLevel == idx ? .bold : .regular,
+                                          design: .monospaced))
+                            .foregroundColor(vm.selectedLevel == idx ? Color.appBackground : .white.opacity(0.5))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(vm.selectedLevel == idx ? Color.gold : Color.clear)
+                    }
+                    .buttonStyle(.plain)
+                    if idx < 2 {
+                        Rectangle().fill(Color.white.opacity(0.1)).frame(width: 1)
+                    }
+                }
+            }
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+            .padding(.bottom, 2)
+
+            if vm.selectedLevel >= 1 && !vm.allSlangs.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(Color.gold)
                     Text("金色の単語をタップで解説")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.gray)
                 }
-                .padding(.bottom, 4)
             }
 
             ForEach(r.keyBars) { bar in
                 TappableBarCard(
                     bar: bar,
                     allSlangs: vm.allSlangs,
+                    level: vm.selectedLevel,
                     onSlangTap: { slang in
                         selectedSlang = slang
                         showSlang = true
@@ -429,10 +645,12 @@ struct TrackDecodeView: View {
     }
 }
 
-// MARK: - Bar card: lyric prominently + explanation always visible
+// MARK: - Bar card: level-aware display
+/// level 0 = 初心者, 1 = 中級者 (default), 2 = 上級者
 struct TappableBarCard: View {
     let bar: KeyBar
     let allSlangs: [SlangDefinition]
+    var level: Int = 1
     var onSlangTap: (SlangDefinition) -> Void
 
     private var barSlangs: [SlangDefinition] {
@@ -447,27 +665,39 @@ struct TappableBarCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Lyric line — prominent
-            TappableLyricsView(
-                text: bar.bar,
-                slangDefinitions: barSlangs,
-                onTap: onSlangTap
-            )
+            // Lyric line — show rhyme highlighting at level ≥ 1
+            if level == 0 {
+                Text(bar.bar)
+                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
+            } else {
+                RhymeHighlightedText(text: bar.bar)
+            }
 
-            // Divider
             Rectangle()
                 .fill(Color.white.opacity(0.06))
                 .frame(height: 1)
 
-            // Explanation — always visible
-            Text(bar.explanation)
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.65))
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(4)
+            // Explanation
+            if level == 0 {
+                // Beginner: plain, no jargon label
+                Text(beginnerExplanation)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(5)
+            } else {
+                Text(bar.explanation)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.65))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
+            }
 
-            // Subtext (hidden meaning)
-            if let subtext = bar.subtext, !subtext.isEmpty {
+            // Subtext (hidden meaning) — level ≥ 1
+            if level >= 1, let subtext = bar.subtext, !subtext.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Text("裏")
                         .font(.system(size: 9, weight: .black, design: .monospaced))
@@ -484,14 +714,13 @@ struct TappableBarCard: View {
                 }
             }
 
-            // Slang chips
-            if !barSlangs.filter({ bar.bar.contains($0.word) }).isEmpty {
+            // Slang chips — level ≥ 1
+            let chipsInBar = barSlangs.filter { bar.bar.contains($0.word) }
+            if level >= 1, !chipsInBar.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        ForEach(barSlangs.filter { bar.bar.contains($0.word) }) { slang in
-                            Button {
-                                onSlangTap(slang)
-                            } label: {
+                        ForEach(chipsInBar) { slang in
+                            Button { onSlangTap(slang) } label: {
                                 Text(slang.word)
                                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                     .foregroundColor(Color.gold)
@@ -509,9 +738,27 @@ struct TappableBarCard: View {
                     }
                 }
             }
+
+            // Rhyme legend — level 2 only
+            if level == 2 {
+                RhymeLegend(text: bar.bar)
+            }
         }
         .padding(14)
         .cardStyle()
+    }
+
+    /// Simplified beginner explanation: strip markdown bold markers, take first 2 sentences
+    private var beginnerExplanation: String {
+        let plain = bar.explanation
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "*", with: "")
+            .replacingOccurrences(of: "##", with: "")
+        // Take up to ~120 chars / first sentence boundary
+        let sentences = plain.components(separatedBy: CharacterSet(charactersIn: "。\n"))
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let first = sentences.prefix(2).joined(separator: "。")
+        return first.isEmpty ? plain : first + (sentences.count > 2 ? "..." : "")
     }
 }
 
