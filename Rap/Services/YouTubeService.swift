@@ -190,15 +190,17 @@ struct YouTubeService {
         return filterByRelevance(videos, query: query, artist: artist)
     }
 
-    // MARK: - Relevance filter (two-phase)
+    // MARK: - Relevance filter (two-phase with graceful fallback)
 
-    /// Phase 1 — HARD FILTER (binary, runs first when artist is known):
-    ///   The video title OR channel name MUST contain the artist name/words.
-    ///   Videos that fail are permanently rejected — no score, no second chance.
-    ///   If every video fails the hard filter, return [] (no wrong-artist results).
+    /// Phase 1 — HARD FILTER: prefer videos that mention the artist.
+    ///   If any videos pass, only those proceed to Phase 2.
+    ///   If NONE pass (artist name absent from all titles/channels),
+    ///   fall back to all videos but apply a heavy score penalty so
+    ///   clearly-wrong results sink to the bottom.
     ///
-    /// Phase 2 — SOFT SCORING (applied to hard-filter survivors):
-    ///   Jaccard similarity + title-word coverage + karaoke/cover penalty.
+    /// Phase 2 — SOFT SCORING: Jaccard similarity + artist bonus/penalty +
+    ///   query-word coverage + karaoke/cover penalty.
+    ///   A score floor of 0.0 eliminates videos that score net-negative.
     private static func filterByRelevance(
         _ videos: [YouTubeVideo],
         query: String,
@@ -210,21 +212,29 @@ struct YouTubeService {
             .components(separatedBy: .alphanumerics.inverted)
             .filter { $0.count >= 2 }
 
-        // ── Phase 1: Hard artist filter ─────────────────────────────────────
-        let candidates: [YouTubeVideo]
+        // ── Phase 1: Prefer videos that mention the artist ───────────────────
+        // artistPass = videos that name the artist in title or channel.
+        // If none found, we fall back to all videos (but penalise them below).
+        let artistPass: [YouTubeVideo]
+        let strictArtistMode: Bool
         if !artistLower.isEmpty {
-            let withArtist = videos.filter { video in
+            let matched = videos.filter { video in
                 let t = video.title.lowercased()
                 let c = video.channelTitle.lowercased()
-                // Accept if full artist name OR any artist word appears in title or channel
                 return t.contains(artistLower) || c.contains(artistLower)
                     || artistWords.contains(where: { t.contains($0) || c.contains($0) })
             }
-            // If no video passes, return nothing — never show wrong-artist results
-            guard !withArtist.isEmpty else { return [] }
-            candidates = withArtist
+            if matched.isEmpty {
+                // No video mentions the artist — fall back, but mark for heavy penalty
+                artistPass = videos
+                strictArtistMode = false
+            } else {
+                artistPass = matched
+                strictArtistMode = true
+            }
         } else {
-            candidates = videos
+            artistPass = videos
+            strictArtistMode = false
         }
 
         // ── Phase 2: Soft scoring ─────────────────────────────────────────
@@ -235,15 +245,24 @@ struct YouTubeService {
         let noiseTerms = ["カラオケ", "karaoke", "cover", "covers", "tribute",
                           "instrumental", "歌ってみた", "うたってみた", "off vocal"]
 
-        let scored = candidates.map { video -> (YouTubeVideo, Double) in
+        let scored = artistPass.map { video -> (YouTubeVideo, Double) in
             var score = similarity(video.title, query)
             let titleLower = video.title.lowercased()
+            let channelLower = video.channelTitle.lowercased()
 
-            // Bonus: artist name confirmed in title (more specific than channel)
             if !artistLower.isEmpty {
                 let inTitle = titleLower.contains(artistLower)
                     || artistWords.contains(where: { titleLower.contains($0) })
-                if inTitle { score += 0.3 }
+                let inChannel = channelLower.contains(artistLower)
+                    || artistWords.contains(where: { channelLower.contains($0) })
+
+                if inTitle {
+                    score += 0.5        // artist confirmed in title ✅
+                } else if inChannel {
+                    score += 0.2        // artist in channel name 🟡
+                } else if !strictArtistMode {
+                    score -= 0.6        // fallback pool — artist absent, penalise 🔻
+                }
             }
 
             // Penalise weak title-word coverage
@@ -258,8 +277,11 @@ struct YouTubeService {
             return (video, score)
         }
 
+        // Sort by score; drop anything below zero (net-negative = clearly wrong)
         let sorted = scored.sorted { $0.1 > $1.1 }
-        let aboveThreshold = sorted.filter { $0.1 >= 0.1 }
-        return (aboveThreshold.isEmpty ? sorted : aboveThreshold).map { $0.0 }
+        let positive = sorted.filter { $0.1 > 0 }
+        // If everything is negative, return the top 3 rather than nothing
+        let result = positive.isEmpty ? Array(sorted.prefix(3)) : positive
+        return result.map { $0.0 }
     }
 }
