@@ -54,11 +54,21 @@ struct Configuration {
 
     /// Call at startup (e.g. RapApp.init) to print key status for debugging.
     static func debugPrint() {
+        func source(_ plistKey: String, _ udKey: String) -> String {
+            let p = (Bundle.main.object(forInfoDictionaryKey: plistKey) as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !p.isEmpty && !p.hasPrefix("$(") { return "xcconfig/plist" }
+            let u = (UserDefaults.standard.string(forKey: udKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !u.isEmpty { return "UserDefaults" }
+            return "❌ MISSING"
+        }
         print("── Configuration Debug ──────────────────────────")
-        print("  ANTHROPIC : \(isAnthropicConfigured ? "✅ set (\(anthropicAPIKey.prefix(12))...)" : "❌ missing")")
-        print("  YOUTUBE   : \(isYouTubeConfigured   ? "✅ set (\(youtubeAPIKey.prefix(12))...)"   : "❌ missing")")
-        print("  OPENAI    : \(isOpenAIConfigured     ? "✅ set (\(openAIAPIKey.prefix(12))...)"     : "❌ missing")")
+        print("  ANTHROPIC : \(isAnthropicConfigured ? "✅ set (\(anthropicAPIKey.prefix(12))...) [via \(source("ANTHROPIC_API_KEY","apiKey_anthropic"))]" : "❌ missing → enter in Settings screen")")
+        print("  YOUTUBE   : \(isYouTubeConfigured   ? "✅ set (\(youtubeAPIKey.prefix(12))...) [via \(source("YOUTUBE_API_KEY","apiKey_youtube"))]" : "❌ missing → enter in Settings screen")")
+        print("  OPENAI    : \(isOpenAIConfigured     ? "✅ set (\(openAIAPIKey.prefix(12))...) [via \(source("OPENAI_API_KEY","apiKey_openai"))]"   : "❌ missing → enter in Settings screen")")
         print("  SERVER    : \(TranscriptionService.serverURL.isEmpty ? "❌ not detected" : "✅ \(TranscriptionService.serverURL)")")
+        if !isAnthropicConfigured {
+            print("  ⚠️  Keys not found in xcconfig. Fix: Cmd+Shift+K → Cmd+B, or enter keys in app Settings.")
+        }
         print("────────────────────────────────────────────────")
     }
 }

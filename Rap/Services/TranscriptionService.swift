@@ -16,16 +16,19 @@ struct TranscriptionService {
     }
 
     /// Legacy property — kept for backwards compatibility with ServerSettingsSheet.
-    /// Returns the custom URL if set, otherwise the auto-resolved URL (or empty before discovery).
+    /// Simulator: always returns loopback (127.0.0.1:8765), no health check required.
+    /// Real device: custom URL > auto-resolved URL.
     static var serverURL: String {
         get {
+            if isSimulator { return customServerURL.isEmpty ? simulatorURL : customServerURL }
             let custom = customServerURL
             return custom.isEmpty ? resolvedURL : custom
         }
         set { customServerURL = newValue }
     }
 
-    static var isConfigured: Bool { !resolvedURL.isEmpty || !customServerURL.isEmpty }
+    /// Simulator is always considered "configured" (loopback is implicit).
+    static var isConfigured: Bool { isSimulator || !resolvedURL.isEmpty || !customServerURL.isEmpty }
 
     /// The last successfully reachable URL found by autoDiscover (cached in UserDefaults).
     private static var resolvedURL: String {
@@ -45,26 +48,31 @@ struct TranscriptionService {
     }
 
     /// Try to find and cache a reachable server URL.
-    /// Simulator: tries 127.0.0.1 only.
-    /// Real device: tries common LAN prefixes (192.168.x, 10.0.0.x, etc.)
+    /// Simulator: sets 127.0.0.1 immediately (no health check — Mac server may not be running yet).
+    /// Real device: tries custom URL, then LAN subnet scan.
     @discardableResult
     static func autoDiscover() async -> String? {
+        // Simulator: always loopback — set immediately without waiting for health check
+        if isSimulator {
+            let url = customServerURL.isEmpty ? simulatorURL : customServerURL
+            resolvedURL = url   // cache so serverURL returns it right away
+            // Fire-and-forget health check just to update the status indicator
+            Task.detached {
+                if await isReachable(url) {
+                    print("✅ [TranscriptionService] Mac server is UP at \(url)")
+                } else {
+                    print("⚠️ [TranscriptionService] Server not reachable at \(url) — start with: python server.py")
+                }
+            }
+            return url
+        }
+
         // 1. If user has set a custom URL, test that first
         if !customServerURL.isEmpty {
             if await isReachable(customServerURL) {
                 resolvedURL = customServerURL
                 return customServerURL
             }
-        }
-
-        // 2. Simulator: only loopback
-        if isSimulator {
-            let url = simulatorURL
-            if await isReachable(url) {
-                resolvedURL = url
-                return url
-            }
-            return nil
         }
 
         // 3. Real device: scan candidates

@@ -685,6 +685,18 @@ struct ServerSettingsSheet: View {
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(Color.gold)
 
+            // Simulator: show hardcoded URL notice
+            if TranscriptionService.isSimulator {
+                HStack(spacing: 8) {
+                    Image(systemName: "desktopcomputer")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.gold.opacity(0.7))
+                    Text("シミュレータ: \(TranscriptionService.simulatorURL) を自動使用")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+            }
+
             // Auto-detect status
             HStack(spacing: 8) {
                 let resolved = TranscriptionService.serverURL
@@ -696,7 +708,7 @@ struct ServerSettingsSheet: View {
                         .font(.system(.caption))
                         .foregroundColor(.gray)
                 } else {
-                    Text("自動検出: \(resolved)")
+                    Text("URL: \(resolved)")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundColor(.gray)
                 }
@@ -797,16 +809,33 @@ struct ServerSettingsSheet: View {
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(Color.gold)
 
-            Text("キーを入力するとアプリに保存されます。Secrets.xcconfig でも設定可能です。")
-                .font(.system(.caption))
-                .foregroundColor(.gray)
+            // Warning banner when all keys are missing
+            if anthropicKey.isEmpty && youtubeKey.isEmpty && openaiKey.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 13))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("APIキーが未設定です")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.orange)
+                        Text("以下に直接入力 → 「保存」、またはXcodeでSecrets.xconfigを設定後クリーンビルドしてください。")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange.opacity(0.8))
+                    }
+                }
+                .padding(10)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(8)
+            }
 
-            apiKeyField(label: "Anthropic (Claude)", placeholder: "sk-ant-...", text: $anthropicKey,
-                        isSet: Configuration.isAnthropicConfigured)
-            apiKeyField(label: "YouTube Data API v3", placeholder: "AIza...", text: $youtubeKey,
-                        isSet: Configuration.isYouTubeConfigured)
-            apiKeyField(label: "OpenAI (GPT)", placeholder: "sk-...", text: $openaiKey,
-                        isSet: Configuration.isOpenAIConfigured)
+            apiKeyField(label: "Anthropic (Claude)", placeholder: "sk-ant-...", text: $anthropicKey)
+            apiKeyField(label: "YouTube Data API v3", placeholder: "AIza...", text: $youtubeKey)
+            apiKeyField(label: "OpenAI (GPT)", placeholder: "sk-...", text: $openaiKey)
+
+            Text("入力後「保存」を押すとアプリ内に保存されます（UserDefaults）。\nSecrets.xcconfig で設定済みなら自動的に反映されます。")
+                .font(.system(size: 10))
+                .foregroundColor(.gray.opacity(0.6))
         }
         .padding(16)
         .background(Color.white.opacity(0.04))
@@ -815,7 +844,8 @@ struct ServerSettingsSheet: View {
     }
 
     @ViewBuilder
-    private func apiKeyField(label: String, placeholder: String, text: Binding<String>, isSet: Bool) -> some View {
+    private func apiKeyField(label: String, placeholder: String, text: Binding<String>) -> some View {
+        let isSet = !text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(label)
