@@ -685,19 +685,6 @@ struct ServerSettingsSheet: View {
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(Color.gold)
 
-            // Simulator: show effective URL (custom if set, else loopback default)
-            if TranscriptionService.isSimulator {
-                HStack(spacing: 8) {
-                    Image(systemName: "desktopcomputer")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.gold.opacity(0.7))
-                    let effectiveURL = urlText.isEmpty ? TranscriptionService.simulatorURL : urlText
-                    Text("シミュレータ接続先: \(effectiveURL)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.gray)
-                }
-            }
-
             // Auto-detect status
             HStack(spacing: 8) {
                 let resolved = TranscriptionService.serverURL
@@ -733,16 +720,16 @@ struct ServerSettingsSheet: View {
                 .disabled(isDiscovering)
             }
 
-            // Manual override URL
+            // URL input
             VStack(alignment: .leading, spacing: 6) {
-                Text("手動URL（任意）")
+                Text("サーバーURL")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.gray)
-                Text("空欄のままにすると自動検出を使用します")
+                Text("例: http://10.144.156.253:8765　空欄にすると自動検出を使用します")
                     .font(.system(size: 10))
                     .foregroundColor(.gray.opacity(0.6))
                 HStack(spacing: 8) {
-                    TextField("http://192.168.x.x:8765", text: $urlText)
+                    TextField("http://10.144.156.253:8765", text: $urlText)
                         .font(.system(.body, design: .monospaced))
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
@@ -753,6 +740,9 @@ struct ServerSettingsSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.gold.opacity(0.3), lineWidth: 1))
+                        .onChange(of: urlText) { newValue in
+                            TranscriptionService.customServerURL = newValue
+                        }
                     if !urlText.isEmpty {
                         Button { urlText = ""; serverStatus = nil } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
