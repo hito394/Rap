@@ -592,7 +592,7 @@ struct LyricDeepDiveSheet: View {
                         }
                     }
                     .padding(14)
-                    .cardStyle(padding: 0)
+                    .cardStyle()
 
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
@@ -620,7 +620,7 @@ struct LyricDeepDiveSheet: View {
                         }
                     }
                     .padding(14)
-                    .cardStyle(padding: 0)
+                    .cardStyle()
                 }
                 .padding(16)
             }
