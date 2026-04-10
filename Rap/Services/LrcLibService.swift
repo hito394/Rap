@@ -22,8 +22,8 @@ struct LrcLibService {
         if let direct = await getDirect(title: title, artist: artist) {
             return direct
         }
-        // Fall back to keyword search
-        return await searchQuery(q: "\(artist) \(title)")
+        // Fall back to keyword search with title validation
+        return await searchQuery(q: "\(artist) \(title)", title: title, artist: artist)
     }
 
     // MARK: - Get exact match
@@ -36,16 +36,39 @@ struct LrcLibService {
         return await fetch(comps.url)
     }
 
-    // MARK: - Keyword search
-    private static func searchQuery(q: String) async -> LrcLibTrack? {
+    // MARK: - Keyword search with validation
+    /// Only returns a track if the title words match — prevents returning wrong songs.
+    private static func searchQuery(q: String, title: String, artist: String) async -> LrcLibTrack? {
         var comps = URLComponents(string: "\(base)/search")!
         comps.queryItems = [URLQueryItem(name: "q", value: q)]
         guard let url = comps.url,
               let (data, _) = try? await URLSession.shared.data(from: url),
-              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-              let first = arr.first
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else { return nil }
-        return parse(first)
+
+        let titleWords = title.lowercased()
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+        let artistLower = artist.lowercased()
+
+        // Pick the first result whose track name contains all title words
+        for item in arr {
+            guard let track = parse(item) else { continue }
+            let tl = track.trackName.lowercased()
+            let al = track.artistName.lowercased()
+            let titleMatch = titleWords.isEmpty || titleWords.allSatisfy { tl.contains($0) }
+            let artistMatch = artistLower.isEmpty || al.contains(artistLower)
+                || artistLower.components(separatedBy: .whitespaces).contains(where: { al.contains($0) })
+            if titleMatch && artistMatch { return track }
+        }
+        // If no artist+title match, try title-only match
+        for item in arr {
+            guard let track = parse(item) else { continue }
+            let tl = track.trackName.lowercased()
+            let titleMatch = titleWords.isEmpty || titleWords.allSatisfy { tl.contains($0) }
+            if titleMatch { return track }
+        }
+        return nil  // No valid match — don't return wrong lyrics
     }
 
     private static func fetch(_ url: URL?) async -> LrcLibTrack? {
