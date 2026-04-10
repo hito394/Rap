@@ -32,12 +32,23 @@ struct AppConfiguration {
         set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_genius") }
     }
 
+    static var googleSearchKey: String {
+        get { resolveWithEnv("GOOGLE_SEARCH_KEY", udKey: "apiKey_googleSearch") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_googleSearch") }
+    }
+
+    static var googleSearchCX: String {
+        get { resolveWithEnv("GOOGLE_SEARCH_CX", udKey: "apiKey_googleSearchCX") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_googleSearchCX") }
+    }
+
     // MARK: - Validation helpers
 
     static var isAnthropicConfigured: Bool { !anthropicAPIKey.isEmpty }
     static var isYouTubeConfigured: Bool { !youtubeAPIKey.isEmpty }
     static var isOpenAIConfigured: Bool { !openAIAPIKey.isEmpty }
     static var isGeniusConfigured: Bool { !geniusAccessToken.isEmpty }
+    static var isGoogleSearchConfigured: Bool { !googleSearchKey.isEmpty && !googleSearchCX.isEmpty }
 
     // MARK: - Private
 

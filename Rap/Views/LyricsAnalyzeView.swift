@@ -81,13 +81,17 @@ class LyricsAnalyzeViewModel {
         async let lrcTask    = LrcLibService.search(title: songTitle, artist: songArtist)
         let (geniusLyrics, lrcTrack) = await (geniusTask, lrcTask)
 
+        // Priority: Genius → LrcLib → Google Search → none
         let lyrics: String?
         if let gl = geniusLyrics, !gl.isEmpty {
             lyrics = gl
-            print("🎵 [LyricsAnalyze] using Genius lyrics")
+            print("🎵 [LyricsAnalyze] source: Genius")
         } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
             lyrics = l
-            print("🎵 [LyricsAnalyze] using LrcLib lyrics")
+            print("🎵 [LyricsAnalyze] source: LrcLib")
+        } else if let gl = await GoogleSearchService.getLyrics(title: songTitle, artist: songArtist), !gl.isEmpty {
+            lyrics = gl
+            print("🎵 [LyricsAnalyze] source: Google Search")
         } else {
             lyrics = nil
             print("🎵 [LyricsAnalyze] no lyrics found — Claude will use training knowledge")

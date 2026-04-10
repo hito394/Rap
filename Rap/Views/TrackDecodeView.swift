@@ -307,7 +307,7 @@ class TrackDetailViewModel {
 
         let level = expertiseLevel  // capture at decode time
 
-        // Fetch lyrics (LrcLib + Genius) + iTunes + MusicBrainz in parallel
+        // Fetch lyrics (Genius + LrcLib) + metadata in parallel
         async let lrcResult    = LrcLibService.search(title: titleText, artist: artistText)
         async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
         async let mbResult     = MusicBrainzService.lookupTrack(title: titleText, artist: artistText)
@@ -316,9 +316,10 @@ class TrackDetailViewModel {
         let (lrcTrack, _, mbInfo, geniusLyrics) = await (lrcResult, itunesResult, mbResult, geniusResult)
 
         // Lyrics priority:
-        // 1. Genius  — most accurate (scraped from official Genius page)
-        // 2. LrcLib  — synced LRC or plain text fallback
-        // 3. None    — Claude uses its training knowledge only
+        // 1. Genius API      — most accurate (official page scrape)
+        // 2. LrcLib          — synced/plain fallback
+        // 3. Google Search   — finds Genius/UtaTen/J-Lyric etc. when API misses
+        // 4. None            — Claude uses training knowledge only
         let bestLyrics: String?
         let lyricsSource: String
         if let gl = geniusLyrics, !gl.isEmpty {
@@ -327,6 +328,10 @@ class TrackDetailViewModel {
         } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
             bestLyrics = l
             lyricsSource = lrcTrack?.syncedLyrics != nil ? "LrcLib (synced)" : "LrcLib (plain)"
+        } else if let googleLyrics = await GoogleSearchService.getLyrics(title: titleText, artist: artistText),
+                  !googleLyrics.isEmpty {
+            bestLyrics = googleLyrics
+            lyricsSource = "Google Search"
         } else {
             bestLyrics = nil
             lyricsSource = "none — Claude uses training knowledge"

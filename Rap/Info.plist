@@ -78,5 +78,10 @@
 	<!-- Genius API access token for lyrics fetching -->
 	<key>GENIUS_ACCESS_TOKEN</key>
 	<string>$(GENIUS_ACCESS_TOKEN)</string>
+	<!-- Google Custom Search API -->
+	<key>GOOGLE_SEARCH_KEY</key>
+	<string>$(GOOGLE_SEARCH_KEY)</string>
+	<key>GOOGLE_SEARCH_CX</key>
+	<string>$(GOOGLE_SEARCH_CX)</string>
 </dict>
 </plist>

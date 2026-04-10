@@ -42,6 +42,7 @@
 		AA1000021 /* MusicBrainzService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000021 /* MusicBrainzService.swift */; };
 		AA1000022 /* LocalTrackDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000022 /* LocalTrackDatabase.swift */; };
 		AA1000023 /* GeniusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000023 /* GeniusService.swift */; };
+		AA1000024 /* GoogleSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000024 /* GoogleSearchService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +81,7 @@
 		AB1000021 /* MusicBrainzService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzService.swift; sourceTree = "<group>"; };
 		AB1000022 /* LocalTrackDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTrackDatabase.swift; sourceTree = "<group>"; };
 		AB1000023 /* GeniusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeniusService.swift; sourceTree = "<group>"; };
+		AB1000024 /* GoogleSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSearchService.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100020 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = Config/Secrets.xcconfig; sourceTree = SOURCE_ROOT; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -132,6 +134,7 @@
 				AB1000021 /* MusicBrainzService.swift */,
 				AB1000022 /* LocalTrackDatabase.swift */,
 				AB1000023 /* GeniusService.swift */,
+				AB1000024 /* GoogleSearchService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -301,6 +304,7 @@
 				AA1000021 /* MusicBrainzService.swift in Sources */,
 				AA1000022 /* LocalTrackDatabase.swift in Sources */,
 				AA1000023 /* GeniusService.swift in Sources */,
+				AA1000024 /* GoogleSearchService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
