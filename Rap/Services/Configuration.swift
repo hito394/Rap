@@ -27,13 +27,27 @@ struct AppConfiguration {
         set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_openai") }
     }
 
+    static var geniusAccessToken: String {
+        get { resolveWithEnv("GENIUS_ACCESS_TOKEN", udKey: "apiKey_genius") }
+        set { UserDefaults.standard.set(newValue.trimmed, forKey: "apiKey_genius") }
+    }
+
     // MARK: - Validation helpers
 
     static var isAnthropicConfigured: Bool { !anthropicAPIKey.isEmpty }
     static var isYouTubeConfigured: Bool { !youtubeAPIKey.isEmpty }
     static var isOpenAIConfigured: Bool { !openAIAPIKey.isEmpty }
+    static var isGeniusConfigured: Bool { !geniusAccessToken.isEmpty }
 
     // MARK: - Private
+
+    /// Like resolve() but also checks ProcessInfo environment variables first.
+    /// Priority: env var (Xcode Run scheme) → Info.plist (xcconfig) → UserDefaults
+    private static func resolveWithEnv(_ infoPlistKey: String, udKey: String) -> String {
+        let fromEnv = (ProcessInfo.processInfo.environment[infoPlistKey] ?? "").trimmed
+        if !fromEnv.isEmpty { return fromEnv }
+        return resolve(infoPlistKey, udKey: udKey)
+    }
 
     /// Reads from Info.plist first; falls back to UserDefaults if the plist value is empty
     /// (happens when xcconfig wasn't set up at build time).

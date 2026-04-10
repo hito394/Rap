@@ -307,22 +307,37 @@ class TrackDetailViewModel {
 
         let level = expertiseLevel  // capture at decode time
 
-        // Fetch lyrics + iTunes + MusicBrainz metadata in parallel
+        // Fetch lyrics (LrcLib + Genius) + iTunes + MusicBrainz in parallel
         async let lrcResult    = LrcLibService.search(title: titleText, artist: artistText)
         async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
         async let mbResult     = MusicBrainzService.lookupTrack(title: titleText, artist: artistText)
+        async let geniusResult = GeniusService.getLyrics(title: titleText, artist: artistText)
 
-        let (lrcTrack, _, mbInfo) = await (lrcResult, itunesResult, mbResult)
+        let (lrcTrack, _, mbInfo, geniusLyrics) = await (lrcResult, itunesResult, mbResult, geniusResult)
+
+        // Lyrics priority:
+        // 1. Genius  — most accurate for Japanese rap (plain text from official page)
+        // 2. LrcLib  — synced (has timestamps) or plain fallback
+        // 3. None    — Claude uses its training knowledge
+        let bestLyrics: String?
+        if let gl = geniusLyrics, !gl.isEmpty {
+            print("🎵 [Decode] using Genius lyrics (\(gl.components(separatedBy: "\n").count) lines)")
+            bestLyrics = gl
+        } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
+            print("🎵 [Decode] using LrcLib lyrics (Genius not available)")
+            bestLyrics = l
+        } else {
+            print("🎵 [Decode] no lyrics found — Claude will use training knowledge")
+            bestLyrics = nil
+        }
 
         do {
             let raw: String
-            if let lrc = lrcTrack, let lyrics = lrc.syncedLyrics ?? lrc.plainLyrics, !lyrics.isEmpty {
-                // LrcLib歌詞あり → レベル指定でClaudeが解析
+            if let lyrics = bestLyrics {
                 raw = try await AnthropicService.decodeTrackWithActualLyrics(
                     title: titleText, artist: artistText, lyrics: lyrics, level: level, mbInfo: mbInfo
                 )
             } else {
-                // フォールバック: Claudeの知識ベース解析 (レベル指定あり)
                 raw = try await AnthropicService.decodeTrack(
                     title: titleText, artist: artistText, level: level, mbInfo: mbInfo
                 )
