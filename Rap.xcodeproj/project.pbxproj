@@ -39,6 +39,8 @@
 		AA100001E /* LrcLibService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001E /* LrcLibService.swift */; };
 		AA100001F /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB100001F /* TranscriptionService.swift */; };
 		AA1000020 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000020 /* Configuration.swift */; };
+		AA1000021 /* MusicBrainzService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000021 /* MusicBrainzService.swift */; };
+		AA1000022 /* LocalTrackDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000022 /* LocalTrackDatabase.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +76,8 @@
 		AB100001E /* LrcLibService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LrcLibService.swift; sourceTree = "<group>"; };
 		AB100001F /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
 		AB1000020 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
+		AB1000021 /* MusicBrainzService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzService.swift; sourceTree = "<group>"; };
+		AB1000022 /* LocalTrackDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTrackDatabase.swift; sourceTree = "<group>"; };
 		AC100001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC100020 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Secrets.xcconfig; path = Config/Secrets.xcconfig; sourceTree = SOURCE_ROOT; };
 		AC100002 /* Rap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rap.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +127,8 @@
 				AB100001E /* LrcLibService.swift */,
 				AB100001F /* TranscriptionService.swift */,
 				AB1000020 /* Configuration.swift */,
+				AB1000021 /* MusicBrainzService.swift */,
+				AB1000022 /* LocalTrackDatabase.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -289,6 +295,8 @@
 				AA100001E /* LrcLibService.swift in Sources */,
 				AA100001F /* TranscriptionService.swift in Sources */,
 				AA1000020 /* Configuration.swift in Sources */,
+				AA1000021 /* MusicBrainzService.swift in Sources */,
+				AA1000022 /* LocalTrackDatabase.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
