@@ -11,8 +11,14 @@ struct TranscriptionService {
     static let defaultPort      = 8765
 
     /// User-overridden URL (stored in UserDefaults). Empty string = use auto-detect.
+    /// Automatically ignores the old loopback default so it doesn't block new LAN URL.
     static var customServerURL: String {
-        get { UserDefaults.standard.string(forKey: "rapServerURL") ?? "" }
+        get {
+            let stored = UserDefaults.standard.string(forKey: "rapServerURL") ?? ""
+            // Treat old loopback value as "not set" — use new default instead
+            if stored == "http://127.0.0.1:8765" || stored == "http://localhost:8765" { return "" }
+            return stored
+        }
         set { UserDefaults.standard.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "rapServerURL") }
     }
 
