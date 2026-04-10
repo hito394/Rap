@@ -3,111 +3,80 @@ import Darwin
 
 struct TranscriptionService {
 
-    // MARK: - Server URL resolution
+    // MARK: - Single source of truth
 
-    /// Candidate URLs tried in order during auto-detect
-    static let simulatorURL     = "http://127.0.0.1:8765"       // Mac server via loopback (simulator)
-    static let defaultDeviceURL = "http://10.144.156.253:8765"  // Mac server on LAN (real device)
-    static let defaultPort      = 8765
+    /// Fallback URL when the user has not configured anything
+    static let fallbackURL = "http://10.144.156.253:8765"
+    static let defaultPort = 8765
 
-    /// User-overridden URL (stored in UserDefaults). Empty string = use platform default.
-    static var customServerURL: String {
-        get { UserDefaults.standard.string(forKey: "rapServerURL") ?? "" }
-        set { UserDefaults.standard.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "rapServerURL") }
-    }
-
-    /// Legacy property — kept for backwards compatibility with ServerSettingsSheet.
-    /// Simulator: always returns loopback (127.0.0.1:8765), no health check required.
-    /// Real device: custom URL > auto-resolved URL.
+    /// The active server base URL.
+    /// Priority: UserDefaults (user-entered) > fallbackURL
+    /// NO simulator-specific branching — both simulator and device use the same logic.
     static var serverURL: String {
         get {
-            if isSimulator { return customServerURL.isEmpty ? simulatorURL : customServerURL }
-            let custom = customServerURL
-            if !custom.isEmpty { return custom }
-            return resolvedURL.isEmpty ? defaultDeviceURL : resolvedURL
+            let stored = (UserDefaults.standard.string(forKey: "rapServerURL") ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let result = stored.isEmpty ? fallbackURL : stored
+            return result
         }
-        set { customServerURL = newValue }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            UserDefaults.standard.set(trimmed, forKey: "rapServerURL")
+            UserDefaults.standard.synchronize()
+            print("🔧 [Server] URL saved → \"\(trimmed)\" (effective: \(trimmed.isEmpty ? fallbackURL : trimmed))")
+        }
     }
 
-    /// Simulator is always considered "configured" (loopback is implicit).
-    static var isConfigured: Bool { isSimulator || !resolvedURL.isEmpty || !customServerURL.isEmpty }
-
-    /// The last successfully reachable URL found by autoDiscover (cached in UserDefaults).
-    private static var resolvedURL: String {
-        get { UserDefaults.standard.string(forKey: "rapServerResolvedURL") ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: "rapServerResolvedURL") }
+    /// Alias kept for call-site compatibility
+    static var customServerURL: String {
+        get { serverURL }
+        set { serverURL = newValue }
     }
 
-    // MARK: - Auto-discover
+    static var isConfigured: Bool { true }   // always considered configured — fallback handles it
 
-    /// Returns true if running in the iOS Simulator
-    static var isSimulator: Bool {
-#if targetEnvironment(simulator)
-        return true
-#else
-        return false
-#endif
-    }
+    // MARK: - Auto-discover (real device only: scans LAN for a reachable server)
 
-    /// Try to find and cache a reachable server URL.
-    /// Simulator: sets 127.0.0.1 immediately (no health check — Mac server may not be running yet).
-    /// Real device: tries custom URL, then LAN subnet scan.
     @discardableResult
     static func autoDiscover() async -> String? {
-        // Simulator: always loopback — set immediately without waiting for health check
-        if isSimulator {
-            let url = customServerURL.isEmpty ? simulatorURL : customServerURL
-            resolvedURL = url   // cache so serverURL returns it right away
-            // Fire-and-forget health check just to update the status indicator
-            Task.detached {
-                if await isReachable(url) {
-                    print("✅ [TranscriptionService] Mac server is UP at \(url)")
-                } else {
-                    print("⚠️ [TranscriptionService] Server not reachable at \(url) — start with: python server.py")
-                }
-            }
-            return url
-        }
-
-        // 1. If user has set a custom URL, test that first
-        if !customServerURL.isEmpty {
-            if await isReachable(customServerURL) {
-                resolvedURL = customServerURL
-                return customServerURL
+        // If user already has a custom URL, validate it first
+        let stored = (UserDefaults.standard.string(forKey: "rapServerURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !stored.isEmpty {
+            print("🔍 [Server] autoDiscover: testing stored URL \(stored)")
+            if await isReachable(stored) {
+                print("✅ [Server] autoDiscover: stored URL reachable")
+                return stored
             }
         }
 
-        // 3. Real device: scan candidates
+        // Scan LAN candidates
         let candidates = buildLANCandidates()
+        print("🔍 [Server] autoDiscover: scanning \(candidates.count) LAN candidates…")
         for url in candidates {
             if await isReachable(url) {
-                resolvedURL = url
+                // Do NOT overwrite user's stored URL — only log the discovery
+                print("✅ [Server] autoDiscover: found reachable server at \(url)")
                 return url
             }
         }
+        print("⚠️ [Server] autoDiscover: no reachable server found")
         return nil
     }
 
-    /// Build a list of likely Mac server URLs for common home/office LAN layouts
     private static func buildLANCandidates() -> [String] {
         var urls: [String] = []
-
-        // Get device's own LAN IP to infer the gateway IP range
         if let deviceIP = deviceLANIPAddress() {
-            // Try .1 (router) and common Mac positions on the same /24 subnet
             let parts = deviceIP.components(separatedBy: ".")
             if parts.count == 4 {
                 let prefix = parts.prefix(3).joined(separator: ".")
-                // Common Mac IPs on small home networks
                 for suffix in [1, 2, 3, 4, 5, 100, 101, 102, 103, 104, 105, 110, 150, 200] {
                     urls.append("http://\(prefix).\(suffix):\(defaultPort)")
                 }
             }
         }
-
-        // Fallback common subnets
-        for prefix in ["192.168.1", "192.168.0", "10.0.0", "172.16.0"] {
-            for suffix in [1, 2, 3, 100, 101, 105] {
+        for prefix in ["10.144.156", "192.168.1", "192.168.0", "10.0.0", "172.16.0"] {
+            for suffix in [1, 2, 3, 100, 101, 105, 253] {
                 let url = "http://\(prefix).\(suffix):\(defaultPort)"
                 if !urls.contains(url) { urls.append(url) }
             }
@@ -115,7 +84,6 @@ struct TranscriptionService {
         return urls
     }
 
-    /// Get the device's own IPv4 address on the local network
     private static func deviceLANIPAddress() -> String? {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
@@ -127,11 +95,10 @@ struct TranscriptionService {
             let addrFamily = interface.ifa_addr.pointee.sa_family
             if addrFamily == UInt8(AF_INET) {
                 let name = String(cString: interface.ifa_name)
-                if name == "en0" || name == "en1" {  // WiFi interface
+                if name == "en0" || name == "en1" {
                     var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                     getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                                &hostname, socklen_t(hostname.count),
-                                nil, 0, NI_NUMERICHOST)
+                                &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
                     address = String(cString: hostname)
                 }
             }
@@ -144,9 +111,9 @@ struct TranscriptionService {
     // MARK: - Health check
 
     static func checkHealth() async -> Bool {
-        let url = serverURL
-        guard !url.isEmpty else { return false }
-        return await isReachable(url)
+        let base = serverURL
+        print("🏥 [Server] checkHealth → \(base)/health")
+        return await isReachable(base)
     }
 
     private static func isReachable(_ baseURL: String) async -> Bool {
@@ -162,7 +129,7 @@ struct TranscriptionService {
         return true
     }
 
-    // MARK: - Analyze video (long timeout for Whisper processing)
+    // MARK: - Analyze video
 
     static func analyze(
         videoID: String,
@@ -170,7 +137,8 @@ struct TranscriptionService {
         rapper2: String = "MC2"
     ) async throws -> [BattleLyricEntry] {
         let base = serverURL
-        guard !base.isEmpty, let url = URL(string: "\(base)/analyze") else {
+        print("🎤 [Server] analyze → \(base)/analyze  videoID=\(videoID)")
+        guard let url = URL(string: "\(base)/analyze") else {
             throw TranscriptionError.notConfigured
         }
 
@@ -180,7 +148,7 @@ struct TranscriptionService {
             "rapper2": rapper2,
         ]
 
-        var request = URLRequest(url: url, timeoutInterval: 360) // 6min
+        var request = URLRequest(url: url, timeoutInterval: 360)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -196,13 +164,12 @@ struct TranscriptionService {
         return entries.sorted { $0.start < $1.start }
     }
 
-    // MARK: - Transcribe lyrics via server (for track decode fallback)
+    // MARK: - Transcribe
 
-    /// Ask the Mac server to transcribe a YouTube video and return plain text.
-    /// Returns nil if server is unreachable or request fails.
     static func transcribe(videoID: String) async -> String? {
         let base = serverURL
-        guard !base.isEmpty, let url = URL(string: "\(base)/transcribe") else { return nil }
+        print("📝 [Server] transcribe → \(base)/transcribe  videoID=\(videoID)")
+        guard let url = URL(string: "\(base)/transcribe") else { return nil }
         let body: [String: Any] = ["url": "https://www.youtube.com/watch?v=\(videoID)"]
         var request = URLRequest(url: url, timeoutInterval: 180)
         request.httpMethod = "POST"

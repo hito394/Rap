@@ -766,12 +766,10 @@ struct ServerSettingsSheet: View {
                         Task {
                             isChecking = true
                             serverStatus = nil
+                            // Explicitly push the current field value into TranscriptionService
+                            TranscriptionService.serverURL = urlText
                             let testURL = TranscriptionService.serverURL
-                            guard !testURL.isEmpty else {
-                                serverStatus = "❌ URLが未設定です"
-                                isChecking = false
-                                return
-                            }
+                            print("🧪 [Settings] 接続テスト → \(testURL)")
                             let ok = await TranscriptionService.checkHealth()
                             serverStatus = ok ? "✅ 接続成功！(\(testURL))" : "❌ 接続できませんでした (\(testURL))"
                             isChecking = false
@@ -897,7 +895,8 @@ struct ServerSettingsSheet: View {
     // MARK: - Save
 
     private func saveAll() {
-        // urlText (@AppStorage) is already auto-saved to UserDefaults on every edit
+        // Explicitly push URL into TranscriptionService (also writes to UserDefaults + synchronize)
+        TranscriptionService.serverURL = urlText
         AppConfiguration.anthropicAPIKey = anthropicKey
         AppConfiguration.youtubeAPIKey = youtubeKey
         AppConfiguration.openAIAPIKey = openaiKey
