@@ -103,24 +103,42 @@ struct AnthropicService {
 あなたは日本語ラップ・ヒップホップ史の最高権威です。以下すべての領域に精通しています:
 
 【日本語ラップ深知識】
-・BAD HOP（川崎）: T-Pablow/Yzerr/Benjazzy/Yellow Pato/Tiji Jojo/Keny/G-K.I.D。\
-KOHH/Loota（T-Pablowの兄弟）。トラップスタイルと川崎ストリート実情
+【レジェンド/黎明期】
+・BUDDHA BRAND（DEV LARGE/NIPPS/CQ）: 「人間発電所」(1997)
+・King Giddra（ZEEBRA/K DUB SHINE）: 「空からの力」(1995)・政治的批判
+・ZEEBRA: 渋谷出身・Street Life Forever / スチャダラパー（ANI/BOSE）: 「今夜はブギー・バック」
+・RHYMESTER（宇多丸/Mummy-D）: 知的批評・B-BOYイズム / ECD(1960-2018): 反体制先駆者
+
+【クラシック/ゴールデンエラ】
+・KICK THE CAN CREW/KREVA: マルシェ/sayonara sayonara / RIP SLYME: 楽園ベイベー/Galaxy
+・OZROSAURUS（MACCHO/横浜）: AREA AREA / Dragon Ash（KJ）: Grateful Days feat.ZEEBRA
+・THA BLUE HERB（ILL-BOSSTINO/札幌）: STILLING STILL DOGGING
+・NITRO MICROPHONE UNDERGROUND（TWIGY/GORE-TEX等）: 2000年代アンダーグラウンド
+・NORIKIYO（神奈川）: 喧嘩商売/孤高 / SEEDA（東京）: HEAVEN/BLUE
+
+【現代メインストリーム】
+・BAD HOP（川崎）: T-Pablow/Yzerr/Benjazzy/Yellow Pato/Tiji Jojo/Keny/G-K.I.D。2024年東京ドームで解散
 ・KOHH/Loota（上野）: ミニマルフロウ・退廃美・NIKE文化
-・Awich（沖縄）: 女性MC・家族の悲劇・沖縄アイデンティティ
-・Creepy Nuts（R-指定×DJ松永）: バトルMC×スクラッチDJ・日常とリリシズムの融合
-・舐達麻（埼玉）: BES/G-PLANTS/BADSAIKUSH。大麻文化・ローファイトラップ
-・漢 a.k.a. GAMI（東京）: 餓鬼レンジャー・東京アンダーグラウンドの重鎮
-・般若（東京）: 社会批評・激烈リリシズム
-・仙人掌（東京）: 詩的・ポエティック
-・ZORN（東京）: 繊細な生活者目線
-・Daichi Yamamoto（京都）: 英日混在・高密度ライム
-・唾奇（沖縄）: 内省的・叙情的
-・AK-69（名古屋）: 先駆者
-・Anarchy（京都）: ハッスル哲学・成長
-・SEEDA（東京）: ストリートリアリズム先駆者
-・MSC/BUDDHA BRAND/RIP SLYME/OZROSAURUS/NITRO: 日本語ラップ黎明期〜黄金期
-・呂布カルマ（名古屋）/DOTAMA/晋平太: バトルMCシーン
-・UMB/KOK/フリースタイルダンジョン/高校生RAP選手権
+・Awich（沖縄）: 女性MC・Queendom/GIFT・家族の悲劇
+・Creepy Nuts（R-指定×DJ松永）: UMB三連覇×DMC世界王者・Bling-Bang-Bang-Born
+・舐達麻（埼玉）: BES/G-PLANTS/BADSAIKUSH。ローファイトラップ・大麻文化
+・漢 a.k.a. GAMI（東京）: 餓鬼レンジャー・MSC。東京アンダーグラウンド重鎮
+・般若（厚木）: フリスタダンジョン首領・社会批評 / ZORN（東京）: 繊細な生活者目線
+・仙人掌（東京）: ポエティック・PALMS / Anarchy（京都）: ハッスル哲学
+・Daichi Yamamoto（京都）: 英日バイリンガル / 唾奇（沖縄）: 内省的・春の温度
+・AK-69（名古屋）: モータリゼーション文化
+
+【バトルシーン】
+・呂布カルマ（名古屋）: KOK長期王者・超高密度マルチシラブルライム
+・DOTAMA: 理論的バトル・お笑い要素 / 晋平太（東京）: UMB優勝・テクニカル
+・UMB/KOK/フリースタイルダンジョン（般若首領）/高校生RAP選手権
+
+【ネクストジェネレーション】
+・KID FRESINO（東京）: 哲学的・Àmè / BIM: THE OTOGIBANASHI'S・Sloppy Joe
+・Dos Monos（荘子it/Tiji Jojo/没）: 実験的・Dos City
+・STUTS: ジャジービートメイカー・Eutopia / C.O.S.A.（名古屋）: Hyper Moment
+・Tohji（東京）: クラウドラップ・angel / JP THE WAVY: ダンスホール×トラップ
+・Punpee（東京）: PSG・映画的ストーリーテリング・Novel Life
 
 ・サンプリング: 歌謡曲/フォーク/演歌サンプル使用・DJプレミア/J-Dilla影響下の日本プロデューサー
 ・ビーフ/ディスソング: 日本語ラップシーン内の抗争・ディス文化
@@ -407,27 +425,53 @@ DEV LARGE逝去前後のシーン内の複雑な関係
 以下のアーティスト・シーンについて深い知識を持ちます：
 
 【主要アーティスト（詳細知識あり）】
-・BAD HOP（川崎溝ノ口出身コレクティブ）: T-Pablow/Yzerr/Benjazzy/Yellow Pato/Tiji Jojo/Keny/G-K.I.D。\
-川崎の実情・ストリートライフをトラップスタイルで表現。COHHとLoota（T-Pablowの兄弟）も関連。
-・KOHH/Loota（上野出身）: ワビサビ的な美意識と退廃感、極限までシンプルなフロウ
-・Awich（沖縄出身）: 女性ラッパー。沖縄のバックグラウンドと女性としての視点
-・Creepy Nuts（R-指定×DJ松永）: バトルMC出身。リリシズムとエンタメの融合
-・舐達麻（埼玉）: BES/G-PLANTS/BADSAIKUSH。大麻文化・ストリート
+【黎明期・レジェンド】
+・BUDDHA BRAND（DEV LARGE/NIPPS/CQ）: NY直輸入リアルヒップホップ。「人間発電所」(1997)は最高傑作
+・King Giddra（ZEEBRA/K DUB SHINE/ZEN-LA-ROCK）: 「空からの力」(1995)で日本語ラップを変革
+・ZEEBRA: 渋谷出身・日本語ラップパイオニア。Street Life Forever
+・スチャダラパー（ANI/BOSE）: 日常感覚・ユーモア・「今夜はブギー・バック」(1994)
+・RHYMESTER（宇多丸/Mummy-D/DJ JIN）: 知的・批評的・B-BOYイズム
+・ECD（1960-2018）: 反体制・政治的・日本語ラップ先駆者
+
+【ゴールデンエラ・クラシック】
+・KICK THE CAN CREW/KREVA: マルシェ/sayonara sayonara
+・RIP SLYME: ファンキー・ポップラップ。楽園ベイベー/Galaxy
+・OZROSAURUS（MACCHO）: 横浜ウエストコースト。AREA AREA/ロデム
+・Dragon Ash（降谷建志/KJ）: ロック×ヒップホップ。Grateful Days feat.ZEEBRA
+・THA BLUE HERB（ILL-BOSSTINO）: 札幌ハードコア。STILLING STILL DOGGING
+・NITRO MICROPHONE UNDERGROUND（TWIGY/GORE-TEX等）: 2000年代アンダーグラウンド金字塔
+・NORIKIYO: 神奈川ストリートリアリズム。喧嘩商売/孤高
+
+【バトル・アンダーグラウンド】
+・BAD HOP（川崎溝ノ口）: T-Pablow/Yzerr/Benjazzy/Yellow Pato/Tiji Jojo/Keny/G-K.I.D。トラップ×川崎ストリート
+・KOHH/Loota（上野）: ミニマルフロウ・退廃美・NIKE文化
 ・漢 a.k.a. GAMI（東京）: 餓鬼レンジャー・MSC。東京アンダーグラウンドの重鎮
-・般若（東京）: 攻撃的リリシズム・社会批評
-・Anarchy（京都）: 自己成長・ハッスル哲学
-・AK-69（名古屋）: 日本語ラップの先駆者、モータリゼーション文化
-・ZORN（東京）: 繊細なリリシズム、生活者目線
-・仙人掌（東京）: ポエティックなアプローチ
-・唾奇（沖縄）: 詩的・内省的スタイル
-・Daichi Yamamoto（京都出身）: 英語日本語混在フロウ
-・Punpee（東京）: 映画的ストーリーテリング
-・呂布カルマ（名古屋）: 超高密度ライム・バトルシーン最強クラス
-・DOTAMA: 理論的バトルスタイル・お笑い要素
-・晋平太（東京）: UMB優勝経験・テクニカルラップ
-・鎮座DOPENESS: ユニーク・実験的スタイル
-・SEEDA: ストリートリアリズムの先駆者
-・BUDDHA BRAND: 90年代日本語ラップの金字塔
+・般若（厚木）: 攻撃的リリシズム・フリスタダンジョン首領
+・舐達麻（埼玉）: BES/G-PLANTS/BADSAIKUSH。大麻文化・ローファイトラップ
+・呂布カルマ（名古屋）: KOK長期王者・超高密度マルチシラブルライム
+・DOTAMA: 理論的バトル・お笑い要素 / 晋平太: UMB優勝・テクニカル
+
+【現代シーン】
+・Awich（沖縄）: 女性MC・Queendom/GIFT・夫の死を乗り越えた復活
+・Creepy Nuts（R-指定×DJ松永）: UMB三連覇×DMC世界王者・Bling-Bang-Bang-Born
+・ZORN（東京）: 繊細な生活者目線・LIFE/HERO
+・仙人掌（東京）: ポエティック・PALMS/港区ブルース
+・唾奇（沖縄）: 内省的・showgoとのコラボ・春の温度
+・Daichi Yamamoto（京都）: 英日バイリンガル・Checkmate
+・Punpee（東京）: PSG・映画的ストーリーテリング・Novel Life
+・Anarchy（京都）: ハッスル哲学・ROYALSTREETZ / AK-69（名古屋）: モータリゼーション文化
+・SEEDA（東京）: ストリートリアリズム先駆者・HEAVEN/BLUE
+
+【ネクストジェネレーション】
+・KID FRESINO（東京）: 哲学的・20 Stop it./Àmè
+・BIM（東京）: THE OTOGIBANASHI'S・Sloppy Joe/DUMBO
+・Dos Monos（東京）: 荘子it/Tiji Jojo/没。実験的・Dos City
+・ISSUGI（東京）: アンダーグラウンド重鎮・BLUE ENOKI
+・STUTS: ジャジービートメイカー・Eutopia/Memories
+・C.O.S.A.（名古屋）: KID FRESINOとコラボ・Hyper Moment
+・Tohji（東京）: クラウドラップ世代・angel/GOKU
+・JP THE WAVY: ダンスホール×トラップ・Cho Wavy De Gomenne
+・Moment Joon: 在日外国人視点・社会批評・Passport & Garcon
 
 【バトルイベント知識】
 ・UMB（ULTIMATE MC BATTLE）: 日本最大のMCバトル大会。決勝は横浜で開催
@@ -732,11 +776,67 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
             (["punpee", "パンピー"],
              "PUNPEE: 東京出身。PSGメンバー。映画・ゲーム・80年代カルチャーを織り込む。代表作: 夜間飛行 / Someone's Someone / Novel Life。"),
             (["anarchy"],
-             "Anarchy: 京都出身。ハッスル哲学・自己成長。代表作: 代表曲多数。"),
+             "Anarchy: 京都出身。ハッスル哲学・自己成長・家族愛。代表作: ROYALSTREETZ / 1CHANCE / 代表曲多数。"),
             (["ak-69", "ak69"],
-             "AK-69: 名古屋出身。日本語ラップ先駆者。モータリゼーション文化。"),
+             "AK-69: 愛知県名古屋出身。本名・鈴木亮平。日本語ラップ黎明期から活躍。モータリゼーション・クルーザー文化。代表作: The Show Must Go On / Sentence of Soul / 夜明けのBLUES。"),
             (["seeda"],
-             "SEEDA: 東京出身。ストリートリアリズム先駆者。代表作: HEAVEN(2006) / BLUE(2008)。"),
+             "SEEDA: 東京出身。ストリートリアリズム先駆者。代表作: HEAVEN(2006) / BLUE(2008) / CONCRETE GREEN(2007)。"),
+            (["zeebra", "ゼブラ", "king giddra", "キングギドラ"],
+             "ZEEBRA: 東京渋谷出身1971年生まれ。King Giddra（ZEN-LA-ROCK/K DUB SHINE/ZEEBRA）で「空からの力」(1995)にて日本語ラップシーンを変革。ソロ代表作: Street Life Forever(1999) / BASED ON A TRUE STORY(2001) / 今すぐ欲しい feat.AI。日本語ラップのパイオニア筆頭。"),
+            (["rhymester", "ライムスター", "宇多丸", "mummy-d", "うたまる"],
+             "RHYMESTER: 1989年東京で結成。宇多丸(MC)/Mummy-D(MC・プロデューサー)/DJ JIN。日本語ラップ最重要グループの一つ。知的・批評的リリシズムと強固なバトルスピリット。代表作: 余計なお世話だ(1998) / B-BOYイズム(1998) / 待ってろ今から本気出す(2011) / ザ・グレート・アマチュアリズム(2011) / ONCE AND FUTURE(2019)。"),
+            (["kreva", "クレバ", "kick the can crew", "キックザカンクルー", "kttc"],
+             "KREVA: 1976年東京生まれ。KICK THE CAN CREW（MCU/KREVA/LITTLE）メインMC・プロデューサー。2004年解散後ソロで大成功。代表作(KTTC): マルシェ / sayonara sayonara / タカラモノ。代表作(solo): アグレッシ部 / 音色 / フロウ / 基準 / チャンス。"),
+            (["tha blue herb", "ブルーハーブ", "tbh", "ill-bosstino", "bosstino"],
+             "THA BLUE HERB: 北海道札幌出身。ILL-BOSSTINO(MC)/T.M.A(DJ/Producer)。1998年デビュー。ハードコア・リアリズム・北海道の孤独と誇り・長文リリック。代表作: STILLING STILL DOGGING(1998) / 未完成(2002) / TOTAL(2006) / 未来は俺等の手の中(2010) / AFTER FOREVER(2019)。"),
+            (["rip slyme", "リップスライム", "ryo-z", "pes"],
+             "RIP SLYME: 東京出身1994年結成。RYO-Z/ILL-SUGI/PES/SU/DJ FUMIYA。ファンキー・ポップ・ユーモア溢れるヒップホップ。代表作: GALAXY(2001) / 楽園ベイベー(2002) / One(2003) / TOKYO CLASSIC(2005)。"),
+            (["スチャダラパー", "scha dara parr", "ani", "bose", "スチャダラ"],
+             "スチャダラパー: 1990年結成。ANI/BOSE/DJ SHINCO。ユーモア・日常・オタク/サブカルチャー視点の先駆者。代表作: 今夜はブギー・バック(小沢健二と)(1994) / サマージャム'95 / 過去ふり返んな / 彼方からの手紙。"),
+            (["buddha brand", "ブッダブランド", "dev large", "デブラージ", "nipps"],
+             "BUDDHA BRAND: NY在住日本人ラッパーDEV LARGE/NIPPS/CQ/DJ MASTERKEYで構成。1995年デビュー。「人間発電所」(1997)は日本語ラップ最高傑作の一つ。NYリアルヒップホップ・哲学的リリック。DEV LARGEは2019年逝去。"),
+            (["norikiyo", "のりきよ"],
+             "NORIKIYO: 神奈川出身。硬派なストリートリアリズム・仁義・家族愛。代表作: 喧嘩商売(2010) / 孤高(2012) / 生きるということ / NORIKIYO(2007)。"),
+            (["仙人掌", "せんにんしょう"],
+             "仙人掌: 東京出身。HOOK名義でも活動。ポエティック・内省的・ストリートとアートの融合。代表作: PALMS(2018) / 港区ブルース / BOY MEETS WORLD feat.KOHH / STREET LIVING。"),
+            (["bim", "ビム"],
+             "BIM: 東京出身1993年生まれ。THE OTOGIBANASHI'Sメンバー(ISSUGI/BIM/ILL SUGI)。オルタナティブ・メロウ・スムースなフロウ。代表作: Sloppy Joe / DUMBO / Big Fish(STUTS & BIM) / The Season feat.PUNPEE。"),
+            (["dos monos", "ドスモノス", "荘子it", "tiji jojo dos"],
+             "Dos Monos: 東京出身。荘子it/Tiji Jojo/没(Botsu)の3MC。実験的・アカデミック・ポストモダンヒップホップ。欧米の批評家からも高評価。代表作: Dos City(2019) / Larderello(2020) / SKSB。"),
+            (["issugi", "イッシュギ"],
+             "ISSUGI: 東京出身。THE OTOGIBANASHI'Sメンバー。Budamunk/Mr.PUGとのBLUE ENOKI。アンダーグラウンドの重鎮。代表作: GEMZ / NORTH NORTH / 16BARS。"),
+            (["kid fresino", "キッドフレシノ", "fresino"],
+             "KID FRESINO: 東京出身1993年生まれ。本名・水上一眞。哲学的・実験的・海外アーティストとの共演多数。代表作: Viridian Shoot(2015) / 20, Stop it.(2019) / Àmè(2022) / ai qing。"),
+            (["stuts", "スタッツ"],
+             "STUTS: ビートメイカー・ラッパー。ジャジー・ソウルフルなサウンド。多くのアーティストとコラボ。代表作: Eutopia(2018) / Memories feat.BIM / PRESENCE II feat.T-Pablow&BIM。"),
+            (["c.o.s.a", "cosa", "コーザ"],
+             "C.O.S.A.: 名古屋出身。KID FRESINOとの「Hyper Moment EP」「Somewhere EP」が有名。メロウ・メランコリック・詩的スタイル。"),
+            (["tohji", "トージ"],
+             "Tohji: 東京出身2001年生まれ。インターネット世代・クラウドラップ・ハイパーポップ。若い世代への影響力が大きい。代表作: angel / GOKU / KIRA / Sick。"),
+            (["jp the wavy", "jpthewavy"],
+             "JP THE WAVY: ムンバイ生まれ・日本育ち。ダンスホール×トラップ×Jヒップホップ。多言語・独特の語感。代表作: Cho Wavy De Gomenne / 1way / KENTA。"),
+            (["ozrosaurus", "オズロサウルス", "maccho", "マッチョ"],
+             "OZROSAURUS: 横浜出身。MACCHO(MC)/RAPH(DJ)。ウエストコーストスタイル×横浜ストリート。代表作: AREA AREA(2000) / ロデム / HAYABUSA / LAY IT DOWN。"),
+            (["dragon ash", "ドラゴンアッシュ", "降谷建志", " kj"],
+             "Dragon Ash: 東京出身1997年結成。降谷建志(KJ)。ロック×ヒップホップのクロスオーバーで日本語ラップをメインストリームへ。代表作: Grateful Days(1999 feat.ZEEBRA/ACO) / LIFE GOES ON / 陽はまたのぼりくりかえす / Let yourself go, Let myself go。"),
+            (["ecd", "イーシーディー"],
+             "ECD: 東京出身1960年生まれ・2018年逝去。日本語ラップの先駆者。反体制・政治的・誠実なリリシズム。代表作: MICROPHONE PAGER / This Is Not A Love Song(1997) / ECDのロンリネス / 失点 IN THE PARK。"),
+            (["twigy", "ツイギー", "nitro microphone underground", "nitro"],
+             "TWIGY: 新潟出身。NITRO MICROPHONE UNDERGROUND（GORE-TEX/MACKA-CHIN/SUIKEN/G.K.MARYAN/DABO/TWIGY/ILL-BOSSTINO）のメンバー。「NITRO MICROPHONE UNDERGROUND」(2000)は日本語ラップの金字塔。"),
+            (["loota", "ルータ"],
+             "Loota: 東京上野出身。KOHHの実弟・T-Pablowとは兄弟（KOHH家）。KOHHのミニマリズムを受け継いだスタイル。代表作: BYE / Loota。"),
+            (["t-pablow", "tpablow"],
+             "T-Pablow: BAD HOPのリードMC。川崎溝ノ口出身。KOHHが兄・Lootaが弟。BAD HOP解散後はソロ活動。代表作(BAD HOP): Kawasaki Drift / Timeless / Light it Up / Dear Wavy。代表作(solo): One Day / PABLO。"),
+            (["yzerr", "ワイザー"],
+             "Yzerr: BAD HOPのメンバー。川崎出身。多彩なフロウ・感情的なリリシズム。BAD HOP解散後もソロ活動。代表作: BAD HOP曲全般 / Thug Life / DBOY。"),
+            (["moment joon", "モーメントジョーン"],
+             "Moment Joon: 韓国出身・大阪在住。社会批評・在日外国人視点・鋭い政治的リリック。代表作: Passport & Garcon(2020) / underground(2022)。"),
+            (["サイプレス上野", "cypress ueno", "ロベルト吉野"],
+             "サイプレス上野とロベルト吉野: 神奈川出身。ユーモア・ポジティブ・ラテン要素・パーティーヒップホップ。代表作: 最高の夏 / AMAZING。"),
+            (["libro", "リブロ"],
+             "LIBRO: 東京出身。繊細・内省的・詩的なリリシズム。代表作: GOLD / ステップ / LETTERS。"),
+            (["rykey", "ライキー"],
+             "Rykey: 神奈川出身。ストリートヒップホップ・ハードコアリリック。代表作: 200 / SUPER STAR。"),
         ]
         for entry in profiles {
             if entry.keys.contains(where: { a.contains($0) }) {

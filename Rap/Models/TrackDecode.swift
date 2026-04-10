@@ -153,15 +153,64 @@ struct PickupTrack: Identifiable {
 
 extension PickupTrack {
     static let list: [PickupTrack] = [
-        PickupTrack(title: "Bad Bitch 美学", artist: "Awich", emoji: "👑"),
+        // BAD HOP / 川崎
         PickupTrack(title: "Kawasaki Drift", artist: "BAD HOP", emoji: "🏎️"),
-        PickupTrack(title: "貧乏ゆすり", artist: "KOHH", emoji: "🌸"),
-        PickupTrack(title: "Pick Up", artist: "Creepy Nuts", emoji: "🎤"),
-        PickupTrack(title: "Rasen", artist: "舐達麻", emoji: "🌀"),
-        PickupTrack(title: "Don't Trust Me", artist: "BAD HOP", emoji: "🔥"),
+        PickupTrack(title: "Timeless", artist: "BAD HOP", emoji: "⏳"),
         PickupTrack(title: "PINK CHAMPAGNE", artist: "T-Pablow", emoji: "🥂"),
+        // KOHH / Loota
+        PickupTrack(title: "貧乏ゆすり", artist: "KOHH", emoji: "🌸"),
         PickupTrack(title: "WASTED", artist: "KOHH", emoji: "💫"),
+        PickupTrack(title: "Dirt Cheap", artist: "KOHH", emoji: "🖤"),
+        // Awich
+        PickupTrack(title: "Bad Bitch 美学", artist: "Awich", emoji: "👑"),
+        PickupTrack(title: "Gila", artist: "Awich", emoji: "🦎"),
+        PickupTrack(title: "Naked", artist: "Awich", emoji: "🔥"),
+        // Creepy Nuts
+        PickupTrack(title: "Bling-Bang-Bang-Born", artist: "Creepy Nuts", emoji: "💥"),
+        PickupTrack(title: "のびしろ", artist: "Creepy Nuts", emoji: "📈"),
+        PickupTrack(title: "助演男優賞", artist: "Creepy Nuts", emoji: "🎬"),
+        // 舐達麻
+        PickupTrack(title: "Rasen", artist: "舐達麻", emoji: "🌀"),
+        PickupTrack(title: "GODBREATH BUDDHACESS", artist: "舐達麻", emoji: "🌿"),
+        // 般若
+        PickupTrack(title: "一番病", artist: "般若", emoji: "🗡️"),
+        PickupTrack(title: "超人", artist: "般若", emoji: "⚡"),
+        // ZORN
+        PickupTrack(title: "稼業", artist: "ZORN", emoji: "💼"),
+        PickupTrack(title: "LIFE", artist: "ZORN", emoji: "🏡"),
+        // 仙人掌
         PickupTrack(title: "生業", artist: "仙人掌", emoji: "🌿"),
+        PickupTrack(title: "港区ブルース", artist: "仙人掌", emoji: "🌃"),
+        // 唾奇
+        PickupTrack(title: "春の温度", artist: "唾奇 & showgo", emoji: "🌸"),
+        PickupTrack(title: "Alright", artist: "唾奇 & showgo", emoji: "✌️"),
+        // Daichi Yamamoto
         PickupTrack(title: "Alter Ego", artist: "Daichi Yamamoto", emoji: "🎭"),
+        PickupTrack(title: "Checkmate", artist: "Daichi Yamamoto", emoji: "♟️"),
+        // PUNPEE
+        PickupTrack(title: "夜間飛行", artist: "PUNPEE", emoji: "✈️"),
+        PickupTrack(title: "Novel Life", artist: "PUNPEE", emoji: "📖"),
+        // 漢 / 般若
+        PickupTrack(title: "剥きだし", artist: "MSC", emoji: "🔪"),
+        // レジェンド
+        PickupTrack(title: "人間発電所", artist: "BUDDHA BRAND", emoji: "⚡"),
+        PickupTrack(title: "空からの力", artist: "King Giddra", emoji: "🐉"),
+        PickupTrack(title: "今夜はブギー・バック", artist: "スチャダラパー", emoji: "🎶"),
+        PickupTrack(title: "B-BOYイズム", artist: "RHYMESTER", emoji: "🎤"),
+        PickupTrack(title: "楽園ベイベー", artist: "RIP SLYME", emoji: "🌴"),
+        PickupTrack(title: "AREA AREA", artist: "OZROSAURUS", emoji: "🏙️"),
+        PickupTrack(title: "Grateful Days", artist: "Dragon Ash", emoji: "🙏"),
+        PickupTrack(title: "マルシェ", artist: "KICK THE CAN CREW", emoji: "🛒"),
+        PickupTrack(title: "喧嘩商売", artist: "NORIKIYO", emoji: "⚔️"),
+        // ネクストジェン
+        PickupTrack(title: "20, Stop it.", artist: "KID FRESINO", emoji: "🧠"),
+        PickupTrack(title: "Sloppy Joe", artist: "BIM", emoji: "🎸"),
+        PickupTrack(title: "Eutopia", artist: "STUTS", emoji: "🎹"),
+        PickupTrack(title: "angel", artist: "Tohji", emoji: "😇"),
+        PickupTrack(title: "Cho Wavy De Gomenne", artist: "JP THE WAVY", emoji: "🌊"),
+        PickupTrack(title: "Dos City", artist: "Dos Monos", emoji: "🏙️"),
+        PickupTrack(title: "HAYABUSA", artist: "OZROSAURUS", emoji: "🦅"),
+        // 呂布カルマ / バトル
+        PickupTrack(title: "最高の夏", artist: "サイプレス上野とロベルト吉野", emoji: "☀️"),
     ]
 }
