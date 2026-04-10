@@ -75,8 +75,33 @@ class LyricsAnalyzeViewModel {
         guard canAnalyze else { return }
         isLoading = true; result = nil; rawResult = nil
         let query = songArtist.isEmpty ? songTitle : "\(songArtist) - \(songTitle)"
+
+        // Fetch lyrics in parallel: Genius (primary) + LrcLib (fallback)
+        async let geniusTask = GeniusService.getLyrics(title: songTitle, artist: songArtist)
+        async let lrcTask    = LrcLibService.search(title: songTitle, artist: songArtist)
+        let (geniusLyrics, lrcTrack) = await (geniusTask, lrcTask)
+
+        let lyrics: String?
+        if let gl = geniusLyrics, !gl.isEmpty {
+            lyrics = gl
+            print("🎵 [LyricsAnalyze] using Genius lyrics")
+        } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
+            lyrics = l
+            print("🎵 [LyricsAnalyze] using LrcLib lyrics")
+        } else {
+            lyrics = nil
+            print("🎵 [LyricsAnalyze] no lyrics found — Claude will use training knowledge")
+        }
+
         do {
-            let raw = try await AnthropicService.analyzeSong(title: songTitle, artist: songArtist)
+            let raw: String
+            if let l = lyrics {
+                // Analyze with actual lyrics for higher accuracy
+                raw = try await AnthropicService.analyzeLyrics(l)
+            } else {
+                // Fallback: Claude uses its training knowledge
+                raw = try await AnthropicService.analyzeSong(title: songTitle, artist: songArtist)
+            }
             rawResult = raw
             result = LyricsAnalysis.parse(from: raw)
             saveHistory(HistoryItem(type: "lyrics", query: query, resultJSON: raw))
