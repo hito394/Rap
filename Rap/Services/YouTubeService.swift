@@ -5,6 +5,7 @@ enum YouTubeError: LocalizedError {
     case networkError(Error)
     case httpError(Int)
     case noResults
+    case noMatch   // Videos found but none contain both artist + title
     case decodingError
 
     var errorDescription: String? {
@@ -18,7 +19,8 @@ enum YouTubeError: LocalizedError {
             case 429: return "YouTube API: 本日のクォータ上限に達しました (429)"
             default:  return "YouTube APIエラー (HTTP \(code))"
             }
-        case .noResults:    return "動画が見つかりませんでした"
+        case .noResults: return "動画が見つかりませんでした"
+        case .noMatch:   return "一致する公式音源が見つかりませんでした"
         case .decodingError: return "データの解析に失敗しました"
         }
     }
@@ -63,9 +65,6 @@ struct YouTubeService {
 
     // MARK: - Query builder
 
-    /// Build a YouTube search query that anchors on the artist name.
-    /// Format: "[Artist] [Title] Official Audio"
-    /// Battle/event queries are passed through unchanged.
     static func buildQuery(_ raw: String, artist: String? = nil) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower   = trimmed.lowercased()
@@ -132,7 +131,7 @@ struct YouTubeService {
                    let result = try? JSONDecoder().decode(YouTubeSearchResponse.self, from: rd) {
                     let videos = result.items.compactMap { $0.toVideo() }
                     guard !videos.isEmpty else { throw YouTubeError.noResults }
-                    return filterByRelevance(videos, query: query, artist: artist)
+                    return try strictFilter(videos, query: query, artist: artist)
                 }
             }
             throw YouTubeError.httpError(code)
@@ -143,65 +142,78 @@ struct YouTubeService {
         }
         let videos = result.items.compactMap { $0.toVideo() }
         guard !videos.isEmpty else { throw YouTubeError.noResults }
-        return filterByRelevance(videos, query: query, artist: artist)
+        return try strictFilter(videos, query: query, artist: artist)
     }
 
-    // MARK: - Relevance filter with fingerprint validation
+    // MARK: - Strict filter: both artist AND title must appear in video title
 
-    /// "Fingerprint" validation:
-    ///   When artist is known, the video title or channel must contain the artist
-    ///   AND the song title words. Videos that clearly fail both checks are ranked last.
-    ///   We never return 0 results — always show the best available match so the user
-    ///   can manually judge. If a "Topic" channel is detected, treat it as artist match.
-    private static func filterByRelevance(
+    /// Requires the video title to contain both artist words and title words.
+    /// If artist is unknown (nil/empty), falls back to title-only check.
+    /// Throws `.noMatch` when no video passes — never returns wrong-artist results.
+    private static func strictFilter(
         _ videos: [YouTubeVideo],
         query: String,
-        artist: String? = nil
-    ) -> [YouTubeVideo] {
+        artist: String?
+    ) throws -> [YouTubeVideo] {
 
         let artistLower = artist?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let artistWords = artistLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+        let artistWords = artistLower
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
 
-        let titleWords = query.lowercased().components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+        let titleWords = query.lowercased()
+            .components(separatedBy: .alphanumerics.inverted)
+            .filter { $0.count >= 2 }
 
         let noiseTerms = ["カラオケ", "karaoke", "cover", "covers", "tribute",
                           "instrumental", "歌ってみた", "うたってみた", "off vocal"]
 
-        let scored = videos.map { video -> (YouTubeVideo, Double) in
-            var score = similarity(video.title, query)
+        // ── Pass 1: artist (title OR channel) + all title words in video title ──
+        let strict = videos.filter { video in
             let vTitle   = video.title.lowercased()
             let vChannel = video.channelTitle.lowercased()
 
-            // ── Fingerprint: artist presence ──────────────────────────────
+            // Noise check
+            if noiseTerms.contains(where: { vTitle.contains($0) }) { return false }
+
+            // Title words check
+            let titleOK = titleWords.isEmpty || titleWords.allSatisfy { vTitle.contains($0) }
+            guard titleOK else { return false }
+
+            // Artist check (title OR channel OR Topic auto-gen)
             if !artistLower.isEmpty {
                 let artistInTitle   = vTitle.contains(artistLower)
                     || artistWords.contains(where: { vTitle.contains($0) })
                 let artistInChannel = vChannel.contains(artistLower)
                     || artistWords.contains(where: { vChannel.contains($0) })
-                    || vChannel.hasSuffix("- topic")   // YouTube Music auto-generated
-
-                if artistInTitle        { score += 0.5 }
-                else if artistInChannel { score += 0.2 }
-                else                    { score -= 0.5 }  // artist absent — penalise, not eliminate
+                    || vChannel.hasSuffix("- topic")
+                return artistInTitle || artistInChannel
             }
-
-            // ── Fingerprint: title words presence ─────────────────────────
-            if !titleWords.isEmpty {
-                let matched  = titleWords.filter { vTitle.contains($0) }
-                let coverage = Double(matched.count) / Double(titleWords.count)
-                if coverage >= 1.0      { score += 0.3 }
-                else if coverage < 0.4  { score -= 0.3 }
-            }
-
-            // ── Noise penalty ─────────────────────────────────────────────
-            if noiseTerms.contains(where: { vTitle.contains($0) }) { score -= 0.5 }
-
-            return (video, score)
+            return true
         }
 
-        let sorted = scored.sorted { $0.1 > $1.1 }
-        // Return top results above 0; if all negative, still return top 3 rather than nothing
-        let positive = sorted.filter { $0.1 > 0 }
-        return (positive.isEmpty ? Array(sorted.prefix(3)) : positive).map { $0.0 }
+        if !strict.isEmpty {
+            return strict.sorted { similarity($0.title, query) > similarity($1.title, query) }
+        }
+
+        // ── Pass 2: title words only (artist may be missing from title — e.g. Topic channel) ──
+        let titleOnly = videos.filter { video in
+            let vTitle   = video.title.lowercased()
+            let vChannel = video.channelTitle.lowercased()
+            if noiseTerms.contains(where: { vTitle.contains($0) }) { return false }
+            let titleOK = titleWords.isEmpty || titleWords.allSatisfy { vTitle.contains($0) }
+            // At minimum the channel must contain an artist word
+            let channelOK = artistWords.isEmpty
+                || artistWords.contains(where: { vChannel.contains($0) })
+                || vChannel.hasSuffix("- topic")
+            return titleOK && channelOK
+        }
+
+        if !titleOnly.isEmpty {
+            return titleOnly.sorted { similarity($0.title, query) > similarity($1.title, query) }
+        }
+
+        // ── No match: refuse to serve wrong-artist video ──
+        throw YouTubeError.noMatch
     }
 }
