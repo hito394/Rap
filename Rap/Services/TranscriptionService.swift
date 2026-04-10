@@ -6,19 +6,13 @@ struct TranscriptionService {
     // MARK: - Server URL resolution
 
     /// Candidate URLs tried in order during auto-detect
-    static let simulatorURL     = "http://10.144.156.253:8765"  // Mac server (LAN)
-    static let defaultDeviceURL = "http://10.144.156.253:8765"  // Mac server on LAN
+    static let simulatorURL     = "http://127.0.0.1:8765"       // Mac server via loopback (simulator)
+    static let defaultDeviceURL = "http://10.144.156.253:8765"  // Mac server on LAN (real device)
     static let defaultPort      = 8765
 
-    /// User-overridden URL (stored in UserDefaults). Empty string = use auto-detect.
-    /// Automatically ignores the old loopback default so it doesn't block new LAN URL.
+    /// User-overridden URL (stored in UserDefaults). Empty string = use platform default.
     static var customServerURL: String {
-        get {
-            let stored = UserDefaults.standard.string(forKey: "rapServerURL") ?? ""
-            // Treat old loopback value as "not set" — use new default instead
-            if stored == "http://127.0.0.1:8765" || stored == "http://localhost:8765" { return "" }
-            return stored
-        }
+        get { UserDefaults.standard.string(forKey: "rapServerURL") ?? "" }
         set { UserDefaults.standard.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "rapServerURL") }
     }
 

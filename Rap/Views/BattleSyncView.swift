@@ -640,7 +640,7 @@ struct LyricDeepDiveSheet: View {
 
 // MARK: - Server settings sheet
 struct ServerSettingsSheet: View {
-    @State private var urlText = TranscriptionService.customServerURL
+    @State private var urlText = UserDefaults.standard.string(forKey: "rapServerURL") ?? ""
     @State private var anthropicKey = AppConfiguration.anthropicAPIKey
     @State private var youtubeKey = AppConfiguration.youtubeAPIKey
     @State private var openaiKey = AppConfiguration.openAIAPIKey
@@ -685,13 +685,14 @@ struct ServerSettingsSheet: View {
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundColor(Color.gold)
 
-            // Simulator: show hardcoded URL notice
+            // Simulator: show effective URL (custom if set, else loopback default)
             if TranscriptionService.isSimulator {
                 HStack(spacing: 8) {
                     Image(systemName: "desktopcomputer")
                         .font(.system(size: 11))
                         .foregroundColor(Color.gold.opacity(0.7))
-                    Text("シミュレータ: \(TranscriptionService.simulatorURL) を自動使用")
+                    let effectiveURL = urlText.isEmpty ? TranscriptionService.simulatorURL : urlText
+                    Text("シミュレータ接続先: \(effectiveURL)")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.gray)
                 }
@@ -772,15 +773,16 @@ struct ServerSettingsSheet: View {
                         Task {
                             isChecking = true
                             serverStatus = nil
-                            let testURL = urlText.isEmpty ? TranscriptionService.serverURL : urlText
+                            // Save the current text first, then resolve the effective URL
+                            TranscriptionService.customServerURL = urlText
+                            let testURL = TranscriptionService.serverURL
                             guard !testURL.isEmpty else {
                                 serverStatus = "❌ URLが未設定です"
                                 isChecking = false
                                 return
                             }
-                            TranscriptionService.customServerURL = urlText
                             let ok = await TranscriptionService.checkHealth()
-                            serverStatus = ok ? "✅ 接続成功！" : "❌ 接続できませんでした"
+                            serverStatus = ok ? "✅ 接続成功！(\(testURL))" : "❌ 接続できませんでした (\(testURL))"
                             isChecking = false
                         }
                     } label: {
