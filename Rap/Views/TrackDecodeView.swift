@@ -316,24 +316,27 @@ class TrackDetailViewModel {
         let (lrcTrack, _, mbInfo, geniusLyrics) = await (lrcResult, itunesResult, mbResult, geniusResult)
 
         // Lyrics priority:
-        // 1. Genius  — most accurate for Japanese rap (plain text from official page)
-        // 2. LrcLib  — synced (has timestamps) or plain fallback
-        // 3. None    — Claude uses its training knowledge
+        // 1. Genius  — most accurate (scraped from official Genius page)
+        // 2. LrcLib  — synced LRC or plain text fallback
+        // 3. None    — Claude uses its training knowledge only
         let bestLyrics: String?
+        let lyricsSource: String
         if let gl = geniusLyrics, !gl.isEmpty {
-            print("🎵 [Decode] using Genius lyrics (\(gl.components(separatedBy: "\n").count) lines)")
             bestLyrics = gl
+            lyricsSource = "Genius (\(gl.components(separatedBy: "\n").count) lines)"
         } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
-            print("🎵 [Decode] using LrcLib lyrics (Genius not available)")
             bestLyrics = l
+            lyricsSource = lrcTrack?.syncedLyrics != nil ? "LrcLib (synced)" : "LrcLib (plain)"
         } else {
-            print("🎵 [Decode] no lyrics found — Claude will use training knowledge")
             bestLyrics = nil
+            lyricsSource = "none — Claude uses training knowledge"
         }
+        print("🎵 [Decode] lyrics source: \(lyricsSource)")
 
         do {
             let raw: String
             if let lyrics = bestLyrics {
+                // Pass real lyrics + let Claude apply its cultural/artist knowledge on top
                 raw = try await AnthropicService.decodeTrackWithActualLyrics(
                     title: titleText, artist: artistText, lyrics: lyrics, level: level, mbInfo: mbInfo
                 )

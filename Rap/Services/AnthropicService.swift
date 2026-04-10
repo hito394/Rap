@@ -666,6 +666,40 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         return try await call(system: songAnalysisSystemPrompt, messages: messages)
     }
 
+    /// Analyze a song using BOTH actual fetched lyrics AND Claude's training knowledge.
+    /// - Uses songAnalysisSystemPrompt (has artist/scene knowledge)
+    /// - Injects artistProfileBlock for known artists
+    /// - Provides real lyrics so Claude doesn't hallucinate lines
+    /// - Instructs Claude to combine lyrics accuracy with its cultural knowledge
+    static func analyzeSongWithLyrics(
+        title: String,
+        artist: String,
+        lyrics: String
+    ) async throws -> String {
+        let profile = artistProfileBlock(artist)
+        let system = songAnalysisSystemPrompt + artistLockBlock(title: title, artist: artist) + """
+
+【重要】以下の実際の歌詞が提供されています。
+・lyrics_excerptには提供された歌詞をそのまま使用すること（推測・創作禁止）
+・key_barsは提供された歌詞の全ラインを順番通りに網羅すること
+・解説・文化背景・スラング解説はあなたの学習知識を最大限活用すること
+・歌詞の正確性 × アーティストの背景知識 を組み合わせた最高品質の解析を行うこと
+"""
+        let userContent = """
+曲名: \(title)
+アーティスト: \(artist)
+\(profile)
+【実際の歌詞（Geniusより取得）】
+\(lyrics)
+
+上記アーティストのプロフィール・出身・スタイル・シーンでの立ち位置を踏まえたうえで、\
+提供された歌詞を全ライン解析してください。\
+歌詞の各ラインの意味・ライム技法・文化的背景・スラングをあなたの知識で解説してください。
+"""
+        let messages: [[String: Any]] = [["role": "user", "content": userContent]]
+        return try await call(system: system, messages: messages)
+    }
+
     // MARK: - Artist profile lookup (injected into every decode request)
 
     /// Returns a factual profile block for known artists to anchor Claude's response.
@@ -757,14 +791,26 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         let profile = artistProfileBlock(artist)
         let system = trackSystemPrompt(level: level) + artistLockBlock(title: title, artist: artist) + """
 
-【重要】以下の実際の歌詞が提供されています。必ずこの歌詞を使ってください（[推測]タグは不要）。
-歌詞は全ライン漏れなくkey_barsに含めること。
+【実際の歌詞あり — 解析方針】
+・提供された歌詞を正として扱う（[推測]タグ不要）
+・key_barsに全ライン（フック・ヴァース・ブリッジ）を漏れなく順番通り収録すること
+・各ラインの意味・ライム技法・スラング解説はあなたの学習知識を最大限活用すること
+・歌詞の正確性 × アーティストのバックグラウンド知識 を組み合わせた解析を行うこと
+・「なぜこのアーティストがこのラインを書いたのか」の文化的文脈を必ず説明すること
 """
         var userContent = "曲名: \(title)\nアーティスト: \(artist)\n\(profile)"
         if let mb = mbInfo {
             userContent += "\n【MusicBrainz確認済みメタデータ】\n\(mb.promptSummary)\n"
         }
-        userContent += "\n【実際の歌詞】\n\(lyrics)\n\n上記アーティストのプロフィール・出身背景を踏まえて、歌詞の全ラインを解析してください。"
+        userContent += """
+
+【実際の歌詞（Genius / LrcLib より取得）】
+\(lyrics)
+
+上記アーティストの出身・スタイル・シーンでの立ち位置を踏まえ、\
+提供された歌詞の全ラインをあなたの学習知識で解析してください。\
+スラング・隠語・文化的背景・ライム技法をそれぞれ詳しく説明してください。
+"""
         let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: system, messages: messages)
     }

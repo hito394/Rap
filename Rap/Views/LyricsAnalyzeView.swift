@@ -96,10 +96,12 @@ class LyricsAnalyzeViewModel {
         do {
             let raw: String
             if let l = lyrics {
-                // Analyze with actual lyrics for higher accuracy
-                raw = try await AnthropicService.analyzeLyrics(l)
+                // Lyrics found: combine real lyrics + Claude's artist/cultural knowledge
+                raw = try await AnthropicService.analyzeSongWithLyrics(
+                    title: songTitle, artist: songArtist, lyrics: l
+                )
             } else {
-                // Fallback: Claude uses its training knowledge
+                // No lyrics: Claude uses its training knowledge only
                 raw = try await AnthropicService.analyzeSong(title: songTitle, artist: songArtist)
             }
             rawResult = raw
