@@ -837,6 +837,90 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
              "LIBRO: 東京出身。繊細・内省的・詩的なリリシズム。代表作: GOLD / ステップ / LETTERS。"),
             (["rykey", "ライキー"],
              "Rykey: 神奈川出身。ストリートヒップホップ・ハードコアリリック。代表作: 200 / SUPER STAR。"),
+            // ── バトル MC ──
+            (["晋平太", "shinpeita"],
+             "晋平太: 東京出身。UMB(Ultimate MC Battle)2008・2010年優勝。テクニカルラップ・高密度マルチシラブル。代表作: 天下一品 / 大器晩成 / SHINPEITA。"),
+            (["dotama", "ドタマ"],
+             "DOTAMA: 埼玉出身。KOK・フリースタイルダンジョン出演。理論的バトルスタイル×お笑い要素。代表作: DOTAMA名義各アルバム。"),
+            (["鎮座dopeness", "鎮座ドープネス", "chinza dopeness", "chinza"],
+             "鎮座DOPENESS: 東京出身。比喩の名手・言葉遊びの達人。KREVA/THA BLUE HERB/RHYMESTER等との共演多数。代表作: ちっちゃな頃から / Wabi-Sabi / 鎮座DOPENESS名義各作品。"),
+            // ── 国際・バイリンガル ──
+            (["shing02", "シングオーツー", "shing 02"],
+             "Shing02: 東京出身・米国在住。Nujabes「Luv(sic)」シリーズ全6作で世界的に有名。詩的・哲学的・日英バイリンガル。代表作: Luv(sic) Part1〜6(Nujabes feat.Shing02) / Equinox。"),
+            // ── 舐達麻 ソロ ──
+            (["bes", "ビーイーエス"],
+             "BES: 埼玉出身。舐達麻メンバー。ソロでも精力的に活動。スロウフロウ・大麻文化・ストリートリアリズム。代表作: 舐達麻各作品 / BES TAPE。"),
+            (["badsaikush", "バッドサイクッシュ"],
+             "BADSAIKUSH: 舐達麻メンバー。重いビートとスロウなフロウ。代表作: 舐達麻各作品。"),
+            // ── 大阪 / 関西 ──
+            (["chico carlito", "チコカーリト", "chico with honestboy"],
+             "Chico Carlito: 大阪出身。「Chico with Honestboy」名義から独立。スムース・メロウ・ラブラップ。代表作: Creep on / HOTEL / 欲しいものは全部。"),
+            (["campanella", "カンパネルラ"],
+             "Campanella: 大阪出身。Olive Oilとのコラボが有名。実験的・叙情的・文学的アプローチ。代表作: SOUP / Indigo / POP STAR。"),
+            (["olive oil", "オリーブオイル"],
+             "Olive Oil: 大阪出身ビートメイカー。Campanella/唾奇等との数多のコラボで知られる。ジャジー・サンプリング志向。"),
+            // ── FLA$HBACK$ / 関東ネクスト ──
+            (["keiju", "ケイジュ", "fla$hback$", "flashback$"],
+             "KEIJU: 神奈川出身。FLA$HBACK$（IO/YOUNG JUJU/KEIJU）メンバー。ストリート×ラブ×メロウ。代表作: I'm Still Wavy / KING feat.AK-69 / 下弦の月。"),
+            (["io", "アイオー", "io the diamond ring"],
+             "IO: 東京出身。FLA$HBACK$メンバー。スタイリッシュ・ドープ・クール。代表作: DRIFT / No Face / IO。"),
+            (["young juju", "ヤングジュジュ"],
+             "YOUNG JUJU: FLA$HBACK$（IO/YOUNG JUJU/KEIJU）のメンバー。ドープなフロウ。代表作: I'm Still Wavy / FLA$HBACK$ EP。"),
+            (["kvi baba", "クビババ", "kvibaba"],
+             "Kvi Baba: 東京出身。柔らかいフロウ・メロウサウンド・実験的アレンジ。代表作: Golden Hour / Distance / Water。"),
+            // ── SALU / SKY-HI ──
+            (["salu", "サル"],
+             "SALU: 北海道出身。In My Armsで一世風靡。R&B×ヒップホップ・メロウスタイル。代表作: In My Arms / HYPE / 454。"),
+            (["sky-hi", "スカイハイ", "日高光啓", "skyhi"],
+             "SKY-HI: 東京出身1990年生まれ。本名・日高光啓。AAA脱退後ソロラッパーとして確立。BMSG設立。代表作: Marble / Tsugunai / JAPRISON / Choose me。"),
+            // ── 千葉雄喜 / ユニーク系 ──
+            (["千葉雄喜", "chiba yuki", "チーム友達"],
+             "千葉雄喜: 埼玉出身。ユニークなフロウ・コミカルかつ鋭いリリシズム。代表作: チーム友達（2023年に話題）。"),
+            (["hidaddy", "ヒダダディ"],
+             "Hidaddy: 福岡出身。ユーモア×ストリート。代表作: 日田ビットコイン / BABYFACE / Hidaddy。"),
+            (["jinmenusagi", "ジンメンウサギ"],
+             "Jinmenusagi: 神奈川出身。多作なインディーラッパー。暗鬱・退廃的・内省的スタイル。代表作: 産声 / HUMAN FACE RABBIT。"),
+            // ── ビートメイカー兼 MC ──
+            (["sweet william", "スウィートウィリアム"],
+             "Sweet William: ビートメイカー・ラッパー。Campanellaとのコラボが有名。ジャジー・メロウ。代表作: 名も無き感情 / Someday。"),
+            (["doul", "ドウル"],
+             "Doul: 東京出身。インディーR&B×ヒップホップ。KID FRESINOとの共演。代表作: I GOT YOUR BACK / Flower。"),
+            (["fuji taito", "フジタイト"],
+             "Fuji Taito: 東京出身。哲学的・ポエティックなアプローチ。代表作: YOSA BUSHI / COMPASS。"),
+            // ── NITRO 関連ソロ ──
+            (["dabo", "ダボ"],
+             "DABO: 東京出身。NITRO MICROPHONE UNDERGROUNDメンバー。スタイリッシュ・クール・東京スタイル。代表作: NITRO各作品 / DABOソロ作品。"),
+            (["gore-tex", "ゴアテックス"],
+             "GORE-TEX: NITRO MICROPHONE UNDERGROUNDメンバー。凶悪なフロウ・ハードコア。代表作: NITRO MICROPHONE UNDERGROUND(2000)。"),
+            (["macka-chin", "マッカチン"],
+             "MACKA-CHIN: NITRO MICROPHONE UNDERGROUNDメンバー。東京アンダーグラウンドのカリスマ。"),
+            (["suiken", "スイケン"],
+             "SUIKEN: 新潟出身。NITRO MICROPHONE UNDERGROUNDメンバー。激しいフロウ・東北リアリズム。"),
+            // ── DJ / プロデューサー系 ──
+            (["dj krush", "djクラッシュ", "krush"],
+             "DJ KRUSH: 東京出身1962年生まれ。世界的日本人DJプロデューサー。無機質・ダーク・インストゥルメンタルヒップホップの第一人者。代表作: Strictly Turntablized(1994) / Meiso(1995) / Kakusei(2023)。"),
+            (["muro", "ムロ"],
+             "DJ MURO: 東京出身。King of Diggin'の異名。膨大なレコードコレクションとDJスキル。日本語ラップとブラックミュージックを繋ぐ存在。"),
+            (["showgo", "show-go", "sho-g"],
+             "showgo: 沖縄出身ビートメイカー。唾奇とのコラボ「春の温度」「Alright」「MEMO」で広く知られる。繊細で詩的なビートメイク。"),
+            // ── LAMP EYE / 90年代アンダーグラウンド ──
+            (["lamp eye", "ランプアイ", "証言"],
+             "LAMP EYE: 90年代日本語ラップの重要グループ。「証言」(1995)はヒップホップ史の名曲。TWIGY/GORE-TEX/G.K.MARYAN/YU-KI等が参加。"),
+            (["g.k.maryan", "gkmaryan", "maryan"],
+             "G.K.MARYAN: NITRO MICROPHONE UNDERGROUNDおよびLAMP EYEメンバー。東京アンダーグラウンドシーンの重要人物。"),
+            // ── 関西 / 九州 / 地方 ──
+            (["big rec", "ビッグレック"],
+             "Big Rec: 熊本出身。九州ヒップホップシーンを代表するアーティスト。ストリートリアリズム。"),
+            (["young coco", "ヤングココ"],
+             "Young Coco: 大阪出身。関西ヒップホップシーンの重要人物。トラップ×ストリート。"),
+            // ── MSC ──
+            (["msc", "エムエスシー"],
+             "MSC: 東京出身。漢 a.k.a. GAMI / SHINGO★西成 / Bro-K / COMA-CHI等。「剥きだし」(2005)は日本語ラップ名盤。アンダーグラウンド最重要グループ。"),
+            (["shingo★西成", "shingo 西成", "shingo nishinarí"],
+             "SHINGO★西成: 大阪西成出身。MSCメンバー。大阪ストリートの実情・貧困・日雇い労働。代表作: Aint No Sunshine / 西成ゆれる。"),
+            // ── 仙台 / 北日本 ──
+            (["gagle", "ガグル"],
+             "GAGLE: 仙台出身。DJ MITSU THE BEATS / HUNGER / VORKのトリオ。仙台からのアンダーグラウンドヒップホップ。代表作: Departure / Morning Glow。"),
         ]
         for entry in profiles {
             if entry.keys.contains(where: { a.contains($0) }) {
