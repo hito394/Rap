@@ -52,7 +52,7 @@ struct MusicBrainzService {
 
         guard let resp = try? JSONDecoder().decode(MBRecordingResponse.self, from: data),
               let rec  = resp.recordings.first,
-              rec.score >= 60 else { return nil }
+              rec.scoreInt >= 60 else { return nil }
 
         let confirmedArtist = rec.artistCredit?.first?.artist.name ?? trimArtist
         let album  = rec.releases?.first?.title
@@ -91,7 +91,7 @@ struct MusicBrainzService {
         }
 
         return resp.recordings.compactMap { rec -> iTunesTrack? in
-            guard rec.score >= 55 else { return nil }
+            guard rec.scoreInt >= 55 else { return nil }
             let artistName = rec.artistCredit?.first?.artist.name ?? trimArtist
             return iTunesTrack(
                 trackName:    rec.title,
@@ -112,11 +112,13 @@ private struct MBRecordingResponse: Codable {
 
 private struct MBRecording: Codable {
     let title: String
-    let score: Int
+    let score: String   // MusicBrainz returns score as String (e.g. "100")
     let firstReleaseDate: String?
     let artistCredit: [MBArtistCredit]?
     let releases: [MBRelease]?
     let tags: [MBTag]?
+
+    var scoreInt: Int { Int(score) ?? 0 }
 
     enum CodingKeys: String, CodingKey {
         case title, score, tags
