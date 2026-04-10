@@ -640,7 +640,7 @@ struct LyricDeepDiveSheet: View {
 
 // MARK: - Server settings sheet
 struct ServerSettingsSheet: View {
-    @State private var urlText = UserDefaults.standard.string(forKey: "rapServerURL") ?? ""
+    @AppStorage("rapServerURL") private var urlText: String = ""
     @State private var anthropicKey = AppConfiguration.anthropicAPIKey
     @State private var youtubeKey = AppConfiguration.youtubeAPIKey
     @State private var openaiKey = AppConfiguration.openAIAPIKey
@@ -740,9 +740,6 @@ struct ServerSettingsSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.gold.opacity(0.3), lineWidth: 1))
-                        .onChange(of: urlText) { newValue in
-                            TranscriptionService.customServerURL = newValue
-                        }
                     if !urlText.isEmpty {
                         Button { urlText = ""; serverStatus = nil } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
@@ -763,8 +760,6 @@ struct ServerSettingsSheet: View {
                         Task {
                             isChecking = true
                             serverStatus = nil
-                            // Save the current text first, then resolve the effective URL
-                            TranscriptionService.customServerURL = urlText
                             let testURL = TranscriptionService.serverURL
                             guard !testURL.isEmpty else {
                                 serverStatus = "❌ URLが未設定です"
@@ -896,7 +891,7 @@ struct ServerSettingsSheet: View {
     // MARK: - Save
 
     private func saveAll() {
-        TranscriptionService.customServerURL = urlText
+        // urlText (@AppStorage) is already auto-saved to UserDefaults on every edit
         AppConfiguration.anthropicAPIKey = anthropicKey
         AppConfiguration.youtubeAPIKey = youtubeKey
         AppConfiguration.openAIAPIKey = openaiKey
