@@ -647,6 +647,7 @@ struct ServerSettingsSheet: View {
     @State private var isChecking = false
     @State private var isDiscovering = false
     @State private var serverStatus: String? = nil
+    @FocusState private var urlFieldFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -659,6 +660,7 @@ struct ServerSettingsSheet: View {
                 }
                 .padding(20)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.appBackground)
             .navigationTitle("設定")
             .navigationBarTitleDisplayMode(.inline)
@@ -733,13 +735,17 @@ struct ServerSettingsSheet: View {
                         .font(.system(.body, design: .monospaced))
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
                         .foregroundColor(.white)
                         .tint(Color.gold)
+                        .focused($urlFieldFocused)
                         .padding(11)
                         .background(Color.white.opacity(0.08))
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gold.opacity(0.3), lineWidth: 1))
+                            .stroke(urlFieldFocused ? Color.gold : Color.gold.opacity(0.3), lineWidth: 1))
+                        .contentShape(Rectangle())
+                        .onTapGesture { urlFieldFocused = true }
                     if !urlText.isEmpty {
                         Button { urlText = ""; serverStatus = nil } label: {
                             Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
