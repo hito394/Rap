@@ -39,28 +39,29 @@ struct TranscriptionService {
 
     @discardableResult
     static func autoDiscover() async -> String? {
-        // If user already has a custom URL, validate it first
+        // If user already has a stored URL, test only that — never do a full LAN scan
         let stored = (UserDefaults.standard.string(forKey: "rapServerURL") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if !stored.isEmpty {
-            print("🔍 [Server] autoDiscover: testing stored URL \(stored)")
             if await isReachable(stored) {
-                print("✅ [Server] autoDiscover: stored URL reachable")
+                print("✅ [Server] stored URL reachable: \(stored)")
                 return stored
+            } else {
+                print("⚠️ [Server] stored URL not reachable: \(stored)")
+                return nil
             }
         }
 
-        // Scan LAN candidates
+        // No stored URL → scan LAN candidates (first-time setup only)
         let candidates = buildLANCandidates()
-        print("🔍 [Server] autoDiscover: scanning \(candidates.count) LAN candidates…")
+        print("🔍 [Server] first-time scan: \(candidates.count) candidates…")
         for url in candidates {
             if await isReachable(url) {
-                // Do NOT overwrite user's stored URL — only log the discovery
-                print("✅ [Server] autoDiscover: found reachable server at \(url)")
+                print("✅ [Server] found server at \(url)")
                 return url
             }
         }
-        print("⚠️ [Server] autoDiscover: no reachable server found")
+        print("⚠️ [Server] no reachable server found")
         return nil
     }
 
