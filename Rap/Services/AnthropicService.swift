@@ -140,7 +140,28 @@ struct AnthropicService {
 ・Tohji（東京）: クラウドラップ・angel / JP THE WAVY: ダンスホール×トラップ
 ・Punpee（東京）: PSG・映画的ストーリーテリング・Novel Life
 
-・サンプリング: 歌謡曲/フォーク/演歌サンプル使用・DJプレミア/J-Dilla影響下の日本プロデューサー
+【サンプリング深知識 — 必ずこのレベルで特定せよ】
+・歌謡曲/ニューミュージックサンプル: 山下達郎・大滝詠一・荒井由実・松任谷由実・稲垣潤一・中島みゆき・竹内まりや
+・フォーク/ニューウェーブ: 井上陽水・吉田拓郎・RCサクセション（忌野清志郎）・YMO
+・ソウル/ファンク: James Brown / Curtis Mayfield / Marvin Gaye / Isaac Hayes / Sly Stone
+・ジャズ: Miles Davis / John Coltrane / Herbie Hancock（Head Hunters）/ Roy Ayers
+・レゲエ/ダンスホール: Bob Marley / Yellowman（BAD HOPがよく参照）
+・代表的J-Rapサンプル事例:
+  - BAD HOP「Kawasaki Drift」→ Dillon Francis "Get Low" + dancehall elements
+  - THA BLUE HERB → ダークソウル的ダウンテンポ、ほぼ無サンプル（オリジナルビート）
+  - BUDDHA BRAND「人間発電所」→ James Brown "Funky Drummer" / Public Enemy的コラージュ
+  - OZROSAURUS「AREA AREA」→ Dr. Dre G-Funk 影響、West Coast ギターループ
+  - 舐達麻 → Alchemist / Conductor Williams 系ローファイジャズビート
+  - Punpee → 映画サントラ・シティポップ・AORの折衷
+  - KOHH → 808 Mafia / London On Da Track 系トラップ、ほぼ無サンプル
+  - NORIKIYO → Premier 系ハードコアブーンバップ、クラシックブレイクビーツ
+・日本プロデューサーのサンプリング傾向:
+  - Olive Oil（奈良）: ジャジー・ブーンバップ、Dilla直系チョップ
+  - ISSUGI: ロウファイ・オールドスクール、ブレイクビーツ中心
+  - KM: シティポップ/歌謡曲リサンプル × モダントラップ
+  - トラックメイカー雷: ハードコア、NYスタイル
+  - Budamunk: Jazz/Soul直系チョップ
+・サンプル特定の必須アプローチ: WhoSampled.com 相当の知識で「何小節目の何のフレーズ」まで特定する
 ・ビーフ/ディスソング: 日本語ラップシーン内の抗争・ディス文化
 
 【著作権・引用方針】
@@ -174,12 +195,15 @@ struct AnthropicService {
   ],
   "samples": [
     {
-      "original_artist": "サンプリング元",
-      "original_track": "原曲タイトル",
-      "original_year": "原曲の年",
-      "sampled_element": "何をサンプリングしたか",
-      "how_used": "どう使用・加工されたか",
-      "clearance_note": "クリアランス状況"
+      "original_artist": "サンプリング元アーティスト（できる限り正確に）",
+      "original_track": "原曲タイトル（アルバム名も可）",
+      "original_year": "原曲のリリース年",
+      "sample_type": "ループ / チョップ / インターポレーション / ドラムブレイク / ベースライン / ホーン / ボイス のいずれか",
+      "sampled_element": "何をサンプリングしたか（例: イントロのギターリフ、2小節目のドラムパターン等）",
+      "timestamp_original": "原曲の何分何秒頃（分かれば）",
+      "how_used": "どう使用・加工されたか（ピッチ変更・テンポ変更・リバース・チョップ等）",
+      "confidence": "確実 / 高 / 中 / 推測",
+      "clearance_note": "クリアランス状況（不明なら「不明」）"
     }
   ],
   "slang_glossary": [

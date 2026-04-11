@@ -81,11 +81,11 @@ struct iTunesService {
         guard !artist.isEmpty else { return tracks }
         let aLower = artist.lowercased()
         let aWords = aLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
-        let matched = tracks.filter { t in
+        return tracks.filter { t in
             let a = t.artistName.lowercased()
             return a.contains(aLower) || aWords.contains(where: { a.contains($0) })
         }
-        return matched.isEmpty ? tracks : matched
+        // returns [] when no artist match — caller falls through to LocalDB
     }
 
     // MARK: - Best match for artwork / preview (called after decode)
@@ -97,8 +97,24 @@ struct iTunesService {
         let pool = results.filter { !isNoise($0) }.isEmpty ? results : results.filter { !isNoise($0) }
         let tNorm = title.lowercased()
         let aNorm = artist.lowercased()
-        if let best = pool.first(where: { $0.trackName.lowercased().contains(tNorm) && $0.artistName.lowercased().contains(aNorm) }) { return best }
-        if let byTitle = pool.first(where: { $0.trackName.lowercased().contains(tNorm) }) { return byTitle }
-        return pool.first
+        let aWords = aNorm.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+
+        // 1. Title + exact artist match
+        if let best = pool.first(where: {
+            $0.trackName.lowercased().contains(tNorm) && $0.artistName.lowercased().contains(aNorm)
+        }) { return best }
+
+        // 2. Title + any artist-word match (e.g. "BAD HOP" matches "BAD HOP & ...")
+        if let wordMatch = pool.first(where: {
+            let a = $0.artistName.lowercased()
+            return $0.trackName.lowercased().contains(tNorm) && aWords.contains(where: { a.contains($0) })
+        }) { return wordMatch }
+
+        // 3. Title only — only when no artist was given
+        if artist.isEmpty, let byTitle = pool.first(where: { $0.trackName.lowercased().contains(tNorm) }) {
+            return byTitle
+        }
+
+        return nil
     }
 }
