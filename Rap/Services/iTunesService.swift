@@ -99,34 +99,49 @@ struct iTunesService {
     // MARK: - Predictive suggestion search (3-tier)
 
     /// Tier 1 → iTunes Japan  (has artwork + preview)
-    /// Tier 2 → Local offline DB (instant, 150+ J-rap tracks)
+    /// Tier 2 → Local offline DB (always merged with iTunes — guarantees known tracks appear)
     /// Tier 3 → MusicBrainz  (free, no key, 30M+ tracks worldwide)
     static func searchByTitle(query: String, artist: String = "", limit: Int = 10) async -> [iTunesTrack] {
         guard query.count >= 2 else { return [] }
 
         let artistTrimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasArtist = !artistTrimmed.isEmpty
+        let qLower = query.lowercased()
+        let qWords = qLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
 
         // ── Tier 1: iTunes Japan ──────────────────────────────────────────────
+        var itunesMatches: [iTunesTrack] = []
         let searchTerm = hasArtist ? "\(query) \(artistTrimmed)" : query
         if let encoded = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            let raw  = await fetch("https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&entity=song&limit=\(limit)")
+            let raw  = await fetch("https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&entity=song&limit=\(limit * 2)")
             let pool = raw.filter { !isNoise($0) }.isEmpty ? raw : raw.filter { !isNoise($0) }
-            let qWords = query.lowercased().components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+            // Only keep tracks whose title actually matches the query words
             let strict = pool.filter { t in
                 let tl = t.trackName.lowercased()
-                return qWords.allSatisfy { tl.contains($0) }
+                return qWords.isEmpty ? tl.contains(qLower) : qWords.allSatisfy { tl.contains($0) }
             }
-            let candidates = strict.isEmpty ? (qWords.count >= 2 ? [] : pool) : strict
+            let candidates = strict.isEmpty ? [] : strict
             if !candidates.isEmpty {
                 let filtered = applyArtistFilter(candidates, artist: artistTrimmed)
-                if !filtered.isEmpty { return Array(filtered.prefix(limit)) }
+                itunesMatches = Array((filtered.isEmpty ? candidates : filtered).prefix(limit))
             }
         }
 
-        // ── Tier 2: Local offline DB ──────────────────────────────────────────
+        // ── Tier 2: Local offline DB (always run — merge with iTunes) ─────────
+        // This ensures tracks not on iTunes JP always appear (e.g. Kawasaki Drift)
         let local = LocalTrackDatabase.search(title: query, artist: artistTrimmed, limit: limit)
-        if !local.isEmpty { return local }
+
+        // Merge: iTunes first (has artwork), then LocalDB entries not already covered
+        var merged = itunesMatches
+        for track in local {
+            let alreadyPresent = merged.contains(where: {
+                $0.trackName.lowercased() == track.trackName.lowercased()
+                && $0.artistName.lowercased() == track.artistName.lowercased()
+            })
+            if !alreadyPresent { merged.append(track) }
+        }
+
+        if !merged.isEmpty { return Array(merged.prefix(limit)) }
 
         // ── Tier 3: MusicBrainz ───────────────────────────────────────────────
         let mb = await MusicBrainzService.searchSuggestions(title: query, artist: artistTrimmed, limit: limit)
