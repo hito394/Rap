@@ -361,9 +361,12 @@ class TrackDetailViewModel {
         print("🎵 [Decode] lyrics source: \(lyricsSource)")
 
         do {
-            print("🤖 [Decode] calling Anthropic (lyrics: \(bestLyrics != nil ? "yes" : "none"))…")
+            // Cap lyrics at 4000 chars — beyond this the request becomes too large and
+            // the Anthropic API response can exceed the 300s timeout
+            let cappedLyrics = bestLyrics.map { String($0.prefix(4000)) }
+            print("🤖 [Decode] calling Anthropic (lyrics: \(cappedLyrics.map { "\($0.count) chars" } ?? "none"))…")
             let raw: String
-            if let lyrics = bestLyrics {
+            if let lyrics = cappedLyrics {
                 // Pass real lyrics + let Claude apply its cultural/artist knowledge on top
                 raw = try await AnthropicService.decodeTrackWithActualLyrics(
                     title: titleText, artist: artistText, lyrics: lyrics, level: level, mbInfo: mbInfo
