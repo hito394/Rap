@@ -39,28 +39,42 @@ struct TranscriptionService {
 
     @discardableResult
     static func autoDiscover() async -> String? {
-        // If user already has a custom URL, validate it first
         let stored = (UserDefaults.standard.string(forKey: "rapServerURL") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 1. Test user-configured URL first
         if !stored.isEmpty {
             print("🔍 [Server] autoDiscover: testing stored URL \(stored)")
             if await isReachable(stored) {
-                print("✅ [Server] autoDiscover: stored URL reachable")
+                print("✅ [Server] autoDiscover: stored URL ok")
                 return stored
             }
+            print("⚠️ [Server] autoDiscover: stored URL unreachable")
         }
 
-        // Scan LAN candidates
+        // 2. Test hardcoded fallback — if this also fails, skip LAN scan entirely.
+        //    The scan floods 43 connections and starves the Anthropic API connection pool.
+        if stored != fallbackURL {
+            print("🔍 [Server] autoDiscover: testing fallback \(fallbackURL)")
+            if await isReachable(fallbackURL) {
+                print("✅ [Server] autoDiscover: fallback ok")
+                return fallbackURL
+            }
+            print("⚠️ [Server] autoDiscover: fallback unreachable — skipping LAN scan")
+            return nil   // ← no scan; caller uses serverURL (fallback) as-is
+        }
+
+        // 3. Only reach here when stored URL failed AND it was the fallbackURL.
+        //    Scan a small set of likely candidates on the same subnet.
         let candidates = buildLANCandidates()
         print("🔍 [Server] autoDiscover: scanning \(candidates.count) LAN candidates…")
         for url in candidates {
             if await isReachable(url) {
-                // Do NOT overwrite user's stored URL — only log the discovery
-                print("✅ [Server] autoDiscover: found reachable server at \(url)")
+                print("✅ [Server] autoDiscover: found \(url)")
                 return url
             }
         }
-        print("⚠️ [Server] autoDiscover: no reachable server found")
+        print("⚠️ [Server] autoDiscover: no server found")
         return nil
     }
 
