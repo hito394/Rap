@@ -85,8 +85,8 @@ struct SampleInfo: Codable, Identifiable {
     let originalArtist: String
     let originalTrack: String
     let originalYear: String?
-    let sampledElement: String
-    let howUsed: String
+    let sampledElement: String?
+    let howUsed: String?
     let clearanceNote: String?
 
     enum CodingKeys: String, CodingKey {

@@ -115,6 +115,22 @@ struct iTunesService {
             return byTitle
         }
 
+        // 4. Second-pass: search title only, apply artist-word filter on wider result set
+        //    Handles cases where iTunes lists track under individual member instead of group
+        if !artist.isEmpty,
+           let encoded2 = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let results2 = await fetch("https://itunes.apple.com/search?term=\(encoded2)&country=jp&media=music&limit=20")
+            let pool2 = results2.filter { !isNoise($0) }.isEmpty ? results2 : results2.filter { !isNoise($0) }
+            if let best2 = pool2.first(where: {
+                let a = $0.artistName.lowercased()
+                return $0.trackName.lowercased().contains(tNorm) && aWords.contains(where: { a.contains($0) })
+            }) { return best2 }
+            // Last resort: exact title match only (avoids totally unrelated tracks)
+            if let byTitleOnly = pool2.first(where: { $0.trackName.lowercased() == tNorm }) {
+                return byTitleOnly
+            }
+        }
+
         return nil
     }
 }

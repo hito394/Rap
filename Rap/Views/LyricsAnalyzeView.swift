@@ -811,13 +811,15 @@ struct SampleCard: View {
                     }
                 }
                 Spacer()
-                GoldTag(text: sample.sampledElement)
+                if let el = sample.sampledElement, !el.isEmpty { GoldTag(text: el) }
             }
 
+            if let used = sample.howUsed, !used.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text("使用方法").font(.system(size: 9, weight: .semibold, design: .monospaced)).foregroundColor(.gray).tracking(0.8)
-                Text(sample.howUsed).font(.system(.caption)).foregroundColor(.white.opacity(0.7))
+                Text(used).font(.system(.caption)).foregroundColor(.white.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true).lineSpacing(3)
+            }
             }
 
             if let note = sample.clearanceNote, !note.isEmpty {

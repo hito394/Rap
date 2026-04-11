@@ -307,27 +307,48 @@ class TrackDetailViewModel {
 
         let level = expertiseLevel  // capture at decode time
 
-        // Fetch lyrics (Genius + LrcLib) + metadata in parallel
+        // Fetch lyrics + metadata in parallel
         async let lrcResult    = LrcLibService.search(title: titleText, artist: artistText)
         async let itunesResult = iTunesService.search(title: titleText, artist: artistText)
         async let mbResult     = MusicBrainzService.lookupTrack(title: titleText, artist: artistText)
         async let geniusResult = GeniusService.getLyrics(title: titleText, artist: artistText)
+        async let utaNetResult = UtaNetService.getLyrics(title: titleText, artist: artistText)
 
-        let (lrcTrack, _, mbInfo, geniusLyrics) = await (lrcResult, itunesResult, mbResult, geniusResult)
+        let (lrcTrack, _, mbInfo, geniusLyrics, utaNetLyrics) = await (lrcResult, itunesResult, mbResult, geniusResult, utaNetResult)
 
         // Lyrics priority:
-        // 1. Genius API      — most accurate (official page scrape)
-        // 2. LrcLib          — synced/plain fallback
-        // 3. Google Search   — finds Genius/UtaTen/J-Lyric etc. when API misses
-        // 4. None            — Claude uses training knowledge only
+        // 1. Genius API  — most accurate (official scrape)
+        // 2. UtaNet      — best for J-rap (Japanese lyrics DB)
+        // 3. LrcLib      — synced/plain fallback
+        // 4. Google Search
+        // 5. None        — Claude uses training knowledge only
         let bestLyrics: String?
         let lyricsSource: String
         if let gl = geniusLyrics, !gl.isEmpty {
             bestLyrics = gl
             lyricsSource = "Genius (\(gl.components(separatedBy: "\n").count) lines)"
-        } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
-            bestLyrics = l
-            lyricsSource = lrcTrack?.syncedLyrics != nil ? "LrcLib (synced)" : "LrcLib (plain)"
+        } else if let ul = utaNetLyrics, !ul.isEmpty {
+            bestLyrics = ul
+            lyricsSource = "UtaNet (\(ul.components(separatedBy: "\n").count) lines)"
+        } else if let lrc = lrcTrack,
+                  let lrcText: String = {
+                      // Prefer plain (no timestamps); strip LRC [mm:ss.xx] from synced as fallback
+                      let raw = lrc.plainLyrics ?? lrc.syncedLyrics
+                      return raw.map { text in
+                          text.split(separator: "\n")
+                              .map { line -> String in
+                                  let s = String(line)
+                                  if s.hasPrefix("["), let r = s.range(of: "]") {
+                                      return String(s[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+                                  }
+                                  return s
+                              }
+                              .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                              .joined(separator: "\n")
+                      }
+                  }(), !lrcText.isEmpty {
+            bestLyrics = lrcText
+            lyricsSource = lrc.plainLyrics != nil ? "LrcLib (plain)" : "LrcLib (synced→stripped)"
         } else if let googleLyrics = await GoogleSearchService.getLyrics(title: titleText, artist: artistText),
                   !googleLyrics.isEmpty {
             bestLyrics = googleLyrics
@@ -587,6 +608,10 @@ struct TrackDecodeView: View {
                 }
             }
 
+            if r.keyBars.isEmpty {
+                EmptyTabMessage(text: "バース情報なし\n（解析タイムアウトまたは歌詞未取得）",
+                                icon: "music.note")
+            }
             ForEach(r.keyBars) { bar in
                 TappableBarCard(
                     bar: bar,
