@@ -82,8 +82,8 @@ struct KeyBar: Codable, Identifiable {
 
 struct SampleInfo: Codable, Identifiable {
     var id = UUID()
-    let originalArtist: String
-    let originalTrack: String
+    let originalArtist: String?
+    let originalTrack: String?
     let originalYear: String?
     let sampledElement: String?
     let howUsed: String?
@@ -130,6 +130,20 @@ struct TrackDecode: Codable {
         case slangGlossary = "slang_glossary"
         case influences
         case legacy
+    }
+
+    // Resilient decoder: partial/missing array fields default to [] instead of failing entirely.
+    // This prevents a single malformed sample or bar from killing the whole decode.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        background        = (try? c.decode(String.self, forKey: .background))              ?? ""
+        eraContext        = (try? c.decode(String.self, forKey: .eraContext))               ?? ""
+        rhymeTechniques   = (try? c.decode([String].self, forKey: .rhymeTechniques))       ?? []
+        keyBars           = (try? c.decode([KeyBar].self, forKey: .keyBars))               ?? []
+        samples           = (try? c.decode([SampleInfo].self, forKey: .samples))           ?? []
+        slangGlossary     = (try? c.decode([TrackSlangEntry].self, forKey: .slangGlossary)) ?? []
+        influences        = (try? c.decode([String].self, forKey: .influences))            ?? []
+        legacy            = (try? c.decode(String.self, forKey: .legacy))                  ?? ""
     }
 
     static func parse(from json: String) -> TrackDecode? {

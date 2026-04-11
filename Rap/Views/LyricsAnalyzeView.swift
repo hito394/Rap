@@ -801,10 +801,10 @@ struct SampleCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Image(systemName: "music.note").font(.system(size: 10)).foregroundColor(.gray)
-                        Text(sample.originalTrack).font(.system(.subheadline, weight: .semibold)).foregroundColor(.white)
+                        Text(sample.originalTrack ?? "不明").font(.system(.subheadline, weight: .semibold)).foregroundColor(.white)
                     }
                     HStack(spacing: 6) {
-                        Text(sample.originalArtist).font(.system(.caption, design: .monospaced)).foregroundColor(Color.gold)
+                        Text(sample.originalArtist ?? "不明").font(.system(.caption, design: .monospaced)).foregroundColor(Color.gold)
                         if let year = sample.originalYear {
                             Text("(\(year))").font(.system(.caption)).foregroundColor(.gray)
                         }
