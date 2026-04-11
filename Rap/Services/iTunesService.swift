@@ -81,11 +81,11 @@ struct iTunesService {
         guard !artist.isEmpty else { return tracks }
         let aLower = artist.lowercased()
         let aWords = aLower.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
-        let matched = tracks.filter { t in
+        return tracks.filter { t in
             let a = t.artistName.lowercased()
             return a.contains(aLower) || aWords.contains(where: { a.contains($0) })
         }
-        return matched.isEmpty ? tracks : matched
+        // Note: returns empty array when no artist match — caller falls through to LocalDB
     }
 
     // MARK: - Best match for artwork / preview (called after decode)
