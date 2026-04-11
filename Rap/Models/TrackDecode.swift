@@ -147,13 +147,29 @@ struct TrackDecode: Codable {
     }
 
     static func parse(from json: String) -> TrackDecode? {
-        let cleaned = json
+        var cleaned = json
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Extract JSON object even when Claude adds preamble/postamble text
+        // e.g. "こちらが解析結果です:\n{...}" → "{...}"
+        if !cleaned.hasPrefix("{"),
+           let start = cleaned.range(of: "{"),
+           let end   = cleaned.range(of: "}", options: .backwards),
+           start.lowerBound < end.lowerBound {
+            cleaned = String(cleaned[start.lowerBound..<end.upperBound])
+        }
+
         guard let data = cleaned.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(TrackDecode.self, from: data)
+        if let decoded = try? JSONDecoder().decode(TrackDecode.self, from: data) {
+            return decoded
+        }
+        // Log raw response for debugging when parse fails
+        print("⚠️ [TrackDecode] parse failed. Raw response (first 300 chars):")
+        print(String(cleaned.prefix(300)))
+        return nil
     }
 }
 

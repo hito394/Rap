@@ -200,6 +200,7 @@ class TrackDetailViewModel {
     var result: TrackDecode?
     var rawResult: String?
     var toastMessage: String?
+    var errorMessage: String? = nil   // persistent error (survives past toast timeout)
     var selectedTab = 0
     var selectedLevel = 1  // 0=初心者 1=中級者 2=上級者
 
@@ -317,7 +318,9 @@ class TrackDetailViewModel {
         isLoading = true
         result = nil
         rawResult = nil
+        errorMessage = nil
         stopPreview()
+        print("🔍 [Decode] START: \(titleText) / \(artistText)")
 
         let level = expertiseLevel  // capture at decode time
 
@@ -358,6 +361,7 @@ class TrackDetailViewModel {
         print("🎵 [Decode] lyrics source: \(lyricsSource)")
 
         do {
+            print("🤖 [Decode] calling Anthropic (lyrics: \(bestLyrics != nil ? "yes" : "none"))…")
             let raw: String
             if let lyrics = bestLyrics {
                 // Pass real lyrics + let Claude apply its cultural/artist knowledge on top
@@ -369,12 +373,20 @@ class TrackDetailViewModel {
                     title: titleText, artist: artistText, level: level, mbInfo: mbInfo
                 )
             }
+            print("✅ [Decode] Anthropic response: \(raw.count) chars")
             rawResult = raw
             result = TrackDecode.parse(from: raw)
+            if result == nil {
+                print("⚠️ [Decode] JSON parse returned nil — raw starts: \(raw.prefix(200))")
+                errorMessage = "解析結果のJSONパースに失敗しました。下の生データをご確認ください。"
+            }
             let query = "\(titleText) / \(artistText)"
             saveHistory(HistoryItem(type: "track", query: query, resultJSON: raw))
         } catch {
-            toastMessage = (error as? AnthropicError)?.errorDescription ?? "接続を確認してください"
+            let msg = (error as? AnthropicError)?.errorDescription ?? error.localizedDescription
+            print("❌ [Decode] error: \(msg)")
+            toastMessage = msg
+            errorMessage = msg
         }
 
         iTunesTrack = await itunesResult
@@ -443,11 +455,34 @@ struct TrackDecodeView: View {
 
                     if let result = vm.result {
                         resultTabs(result)
-                    } else if let raw = vm.rawResult, vm.result == nil && !vm.isLoading {
-                        Text(raw)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.8))
-                            .padding(20)
+                    } else if !vm.isLoading {
+                        // Persistent error banner (survives toast timeout)
+                        if let err = vm.errorMessage {
+                            HStack(spacing: 10) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text(err)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                                Button { vm.errorMessage = nil } label: {
+                                    Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                                }
+                            }
+                            .padding(14)
+                            .background(Color.orange.opacity(0.15))
+                            .cornerRadius(10)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                        }
+
+                        if let raw = vm.rawResult, vm.result == nil {
+                            Text(raw)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(20)
+                        }
                     }
 
                     // Pickup when no result yet
