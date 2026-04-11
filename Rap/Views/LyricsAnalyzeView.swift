@@ -76,17 +76,23 @@ class LyricsAnalyzeViewModel {
         isLoading = true; result = nil; rawResult = nil
         let query = songArtist.isEmpty ? songTitle : "\(songArtist) - \(songTitle)"
 
-        // Fetch lyrics in parallel: Genius (primary) + LrcLib (fallback)
+        // Fetch lyrics in parallel: Genius (primary, section markers) + LrcLib (fallback)
         async let geniusTask = GeniusService.getLyrics(title: songTitle, artist: songArtist)
         async let lrcTask    = LrcLibService.search(title: songTitle, artist: songArtist)
         let (geniusLyrics, lrcTrack) = await (geniusTask, lrcTask)
 
-        // Priority: Genius → LrcLib → Google Search → none
+        // Priority: Genius → UtaNet → LrcLib → Google Search → none
+        // Genius: best (has [Verse 1] section markers)
+        // UtaNet: highest J-music coverage, accurate text, no section markers
+        // LrcLib: use plainLyrics (no timestamps) for clean text
         let lyrics: String?
         if let gl = geniusLyrics, !gl.isEmpty {
             lyrics = gl
             print("🎵 [LyricsAnalyze] source: Genius")
-        } else if let lrc = lrcTrack, let l = lrc.syncedLyrics ?? lrc.plainLyrics, !l.isEmpty {
+        } else if let ul = await UtaNetService.getLyrics(title: songTitle, artist: songArtist), !ul.isEmpty {
+            lyrics = ul
+            print("🎵 [LyricsAnalyze] source: UtaNet")
+        } else if let lrc = lrcTrack, let l = lrc.plainLyrics ?? lrc.syncedLyrics, !l.isEmpty {
             lyrics = l
             print("🎵 [LyricsAnalyze] source: LrcLib")
         } else if let gl = await GoogleSearchService.getLyrics(title: songTitle, artist: songArtist), !gl.isEmpty {
@@ -97,9 +103,18 @@ class LyricsAnalyzeViewModel {
             print("🎵 [LyricsAnalyze] no lyrics found — Claude will use training knowledge")
         }
 
+        // Parse lyrics into named sections (Verse 1 / Hook / サビ etc.) for structured analysis
+        let structuredLyrics: String? = lyrics.map { raw in
+            let sections = LyricsSectionParser.parse(raw)
+            guard !sections.isEmpty else { return raw }
+            let reconstructed = LyricsSectionParser.reconstruct(sections)
+            print("🎵 [LyricsAnalyze] parsed \(sections.count) sections: \(sections.map(\.label).joined(separator: ", "))")
+            return reconstructed
+        }
+
         do {
             let raw: String
-            if let l = lyrics {
+            if let l = structuredLyrics {
                 // Lyrics found: combine real lyrics + Claude's artist/cultural knowledge
                 raw = try await AnthropicService.analyzeSongWithLyrics(
                     title: songTitle, artist: songArtist, lyrics: l

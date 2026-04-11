@@ -174,8 +174,8 @@ struct TranscriptionService {
         var request = URLRequest(url: url, timeoutInterval: 180)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        guard let data = try? JSONSerialization.data(withJSONObject: body),
-              _ = {request.httpBody = data; return true}() else { return nil }
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return nil }
+        request.httpBody = data
         guard let (resData, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse, http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: resData) as? [String: Any],

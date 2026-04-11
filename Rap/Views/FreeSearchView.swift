@@ -277,4 +277,3 @@ struct TypingIndicator: View {
 }
 
 // RoundedCorner / cornerRadius(_:corners:) is defined in DesignSystem.swift
-}
