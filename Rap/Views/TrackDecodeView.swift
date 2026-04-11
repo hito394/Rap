@@ -298,6 +298,20 @@ class TrackDetailViewModel {
         }
     }
 
+    /// Strip LRC `[mm:ss.xx]` timestamps; prefer plainLyrics over syncedLyrics.
+    private func strippedLyrics(_ lrc: LrcLibTrack) -> String? {
+        let raw = lrc.plainLyrics ?? lrc.syncedLyrics
+        guard let text = raw else { return nil }
+        let lines = text.split(separator: "\n").compactMap { line -> String? in
+            var s = String(line)
+            if s.hasPrefix("["), let r = s.range(of: "]") {
+                s = String(s[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+            }
+            return s.isEmpty ? nil : s
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
     func decode(saveHistory: (HistoryItem) -> Void) async {
         guard canDecode else { return }
         isLoading = true
@@ -330,23 +344,7 @@ class TrackDetailViewModel {
         } else if let ul = utaNetLyrics, !ul.isEmpty {
             bestLyrics = ul
             lyricsSource = "UtaNet (\(ul.components(separatedBy: "\n").count) lines)"
-        } else if let lrc = lrcTrack,
-                  let lrcText: String = {
-                      // Prefer plain (no timestamps); strip LRC [mm:ss.xx] from synced as fallback
-                      let raw = lrc.plainLyrics ?? lrc.syncedLyrics
-                      return raw.map { text in
-                          text.split(separator: "\n")
-                              .map { line -> String in
-                                  let s = String(line)
-                                  if s.hasPrefix("["), let r = s.range(of: "]") {
-                                      return String(s[r.upperBound...]).trimmingCharacters(in: .whitespaces)
-                                  }
-                                  return s
-                              }
-                              .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                              .joined(separator: "\n")
-                      }
-                  }(), !lrcText.isEmpty {
+        } else if let lrc = lrcTrack, let lrcText = strippedLyrics(lrc), !lrcText.isEmpty {
             bestLyrics = lrcText
             lyricsSource = lrc.plainLyrics != nil ? "LrcLib (plain)" : "LrcLib (synced→stripped)"
         } else if let googleLyrics = await GoogleSearchService.getLyrics(title: titleText, artist: artistText),
