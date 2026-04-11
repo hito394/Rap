@@ -9,12 +9,38 @@ struct iTunesTrack: Codable, Identifiable {
     let collectionName: String?
 
     var artworkUrl500: String? {
-        artworkUrl100?.replacingOccurrences(of: "100x100bb", with: "500x500bb")
+        guard let url = artworkUrl100 else { return nil }
+        // iTunes CDN: swap 100x100bb → 500x500bb
+        if url.contains("100x100bb") {
+            return url.replacingOccurrences(of: "100x100bb", with: "500x500bb")
+        }
+        // Deezer / other CDN: already full-res, return as-is
+        return url
     }
 }
 
 private struct iTunesResponse: Codable {
     let results: [iTunesTrack]
+}
+
+// MARK: - Deezer (no-auth artwork fallback)
+
+private struct DeezerResponse: Codable {
+    let data: [DeezerItem]
+}
+private struct DeezerItem: Codable {
+    let title: String
+    let artist: DeezerArtist
+    let album: DeezerAlbum
+}
+private struct DeezerArtist: Codable { let name: String }
+private struct DeezerAlbum: Codable {
+    let coverXl: String?
+    let coverBig: String?
+    enum CodingKeys: String, CodingKey {
+        case coverXl = "cover_xl"
+        case coverBig = "cover_big"
+    }
 }
 
 struct iTunesService {
@@ -35,6 +61,39 @@ struct iTunesService {
               let (data, _) = try? await URLSession.shared.data(from: url),
               let resp = try? JSONDecoder().decode(iTunesResponse.self, from: data) else { return [] }
         return resp.results
+    }
+
+    // MARK: - Deezer artwork search
+
+    private static func deezerArtwork(title: String, artist: String) async -> String? {
+        let tNorm = title.lowercased()
+        let aNorm = artist.lowercased()
+        let aWords = aNorm.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
+
+        // Try quoted title+artist query first, then plain query
+        let queries = [
+            "track:\"\(title)\" artist:\"\(artist)\"",
+            "\(title) \(artist)"
+        ]
+        for q in queries {
+            guard let encoded = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                  let url = URL(string: "https://api.deezer.com/search?q=\(encoded)&limit=10"),
+                  let (data, _) = try? await URLSession.shared.data(from: url),
+                  let resp = try? JSONDecoder().decode(DeezerResponse.self, from: data) else { continue }
+
+            for item in resp.data {
+                let iTitle = item.title.lowercased()
+                let iArtist = item.artist.name.lowercased()
+                let titleOK = iTitle.contains(tNorm) || tNorm.contains(iTitle)
+                let artistOK = iArtist.contains(aNorm)
+                    || aNorm.contains(iArtist)
+                    || aWords.contains(where: { iArtist.contains($0) })
+                if titleOK && artistOK {
+                    return item.album.coverXl ?? item.album.coverBig
+                }
+            }
+        }
+        return nil
     }
 
     // MARK: - Predictive suggestion search (3-tier)
@@ -89,48 +148,77 @@ struct iTunesService {
     }
 
     // MARK: - Best match for artwork / preview (called after decode)
+    //
+    // Search order:
+    //   1. iTunes JP  — title + exact artist
+    //   2. iTunes JP  — title + artist-word match
+    //   3. iTunes JP  — title-only pass (no artist given)
+    //   4. iTunes JP  — title-only, wider result set, artist-word filter
+    //   5. iTunes US  — same strategy (some J-rap only on US store)
+    //   6. Deezer     — free API, no auth, excellent J-hiphop coverage
 
     static func search(title: String, artist: String) async -> iTunesTrack? {
-        let query = "\(title) \(artist)"
-        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
-        let results = await fetch("https://itunes.apple.com/search?term=\(encoded)&country=jp&media=music&limit=10")
-        let pool = results.filter { !isNoise($0) }.isEmpty ? results : results.filter { !isNoise($0) }
-        let tNorm = title.lowercased()
-        let aNorm = artist.lowercased()
+        let tNorm  = title.lowercased()
+        let aNorm  = artist.lowercased()
         let aWords = aNorm.components(separatedBy: .alphanumerics.inverted).filter { $0.count >= 2 }
 
-        // 1. Title + exact artist match
-        if let best = pool.first(where: {
-            $0.trackName.lowercased().contains(tNorm) && $0.artistName.lowercased().contains(aNorm)
-        }) { return best }
-
-        // 2. Title + any artist-word match (e.g. "BAD HOP" matches "BAD HOP & ...")
-        if let wordMatch = pool.first(where: {
-            let a = $0.artistName.lowercased()
-            return $0.trackName.lowercased().contains(tNorm) && aWords.contains(where: { a.contains($0) })
-        }) { return wordMatch }
-
-        // 3. Title only — only when no artist was given
-        if artist.isEmpty, let byTitle = pool.first(where: { $0.trackName.lowercased().contains(tNorm) }) {
-            return byTitle
-        }
-
-        // 4. Second-pass: search title only, apply artist-word filter on wider result set
-        //    Handles cases where iTunes lists track under individual member instead of group
-        if !artist.isEmpty,
-           let encoded2 = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            let results2 = await fetch("https://itunes.apple.com/search?term=\(encoded2)&country=jp&media=music&limit=20")
-            let pool2 = results2.filter { !isNoise($0) }.isEmpty ? results2 : results2.filter { !isNoise($0) }
-            if let best2 = pool2.first(where: {
+        func firstMatch(from pool: [iTunesTrack]) -> iTunesTrack? {
+            // Exact artist
+            if let t = pool.first(where: {
+                $0.trackName.lowercased().contains(tNorm) && $0.artistName.lowercased().contains(aNorm)
+            }) { return t }
+            // Artist-word match
+            if let t = pool.first(where: {
                 let a = $0.artistName.lowercased()
                 return $0.trackName.lowercased().contains(tNorm) && aWords.contains(where: { a.contains($0) })
-            }) { return best2 }
-            // Last resort: exact title match only (avoids totally unrelated tracks)
-            if let byTitleOnly = pool2.first(where: { $0.trackName.lowercased() == tNorm }) {
-                return byTitleOnly
-            }
+            }) { return t }
+            return nil
+        }
+
+        // 1–2. iTunes JP with combined query
+        if let enc = "\(title) \(artist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let pool = await itunesPool(encoded: enc, country: "jp", limit: 15)
+            if let m = firstMatch(from: pool) { return m }
+        }
+
+        // 3. iTunes JP title-only (no artist given)
+        if artist.isEmpty,
+           let enc = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let pool = await itunesPool(encoded: enc, country: "jp", limit: 10)
+            if let t = pool.first(where: { $0.trackName.lowercased().contains(tNorm) }) { return t }
+        }
+
+        // 4. iTunes JP title-only, wider, with artist-word filter
+        if !artist.isEmpty,
+           let enc = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let pool = await itunesPool(encoded: enc, country: "jp", limit: 25)
+            if let m = firstMatch(from: pool) { return m }
+            if let t = pool.first(where: { $0.trackName.lowercased() == tNorm }) { return t }
+        }
+
+        // 5. iTunes US (some J-rap distributed globally on US store)
+        if let enc = "\(title) \(artist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let pool = await itunesPool(encoded: enc, country: "us", limit: 15)
+            if let m = firstMatch(from: pool) { return m }
+        }
+
+        // 6. Deezer fallback — returns a synthetic iTunesTrack with Deezer artwork URL
+        if let coverUrl = await deezerArtwork(title: title, artist: artist) {
+            print("🎨 [iTunes] Deezer artwork fallback for \(title) / \(artist)")
+            return iTunesTrack(
+                trackName: title,
+                artistName: artist,
+                artworkUrl100: coverUrl,
+                previewUrl: nil,
+                collectionName: nil
+            )
         }
 
         return nil
+    }
+
+    private static func itunesPool(encoded: String, country: String, limit: Int) async -> [iTunesTrack] {
+        let raw = await fetch("https://itunes.apple.com/search?term=\(encoded)&country=\(country)&media=music&entity=song&limit=\(limit)")
+        return raw.filter { !isNoise($0) }.isEmpty ? raw : raw.filter { !isNoise($0) }
     }
 }
