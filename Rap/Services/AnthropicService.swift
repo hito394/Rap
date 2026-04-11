@@ -679,9 +679,11 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
         let profile = artistProfileBlock(artist)
         let system = songAnalysisSystemPrompt + artistLockBlock(title: title, artist: artist) + """
 
-【重要】以下の実際の歌詞が提供されています。
+【重要】以下の実際の歌詞（小節ラベル付き）が提供されています。
 ・lyrics_excerptには提供された歌詞をそのまま使用すること（推測・創作禁止）
-・key_barsは提供された歌詞の全ラインを順番通りに網羅すること
+・key_barsは提供された歌詞の全ラインを【小節順】に漏れなく網羅すること
+・各barに小節ラベル（[Verse 1] / [Hook] / [サビ] 等）が付いている場合、そのラベルをexplanationの冒頭に明記すること
+・同じフックが繰り返される場合もすべてのインスタンスを記載すること
 ・解説・文化背景・スラング解説はあなたの学習知識を最大限活用すること
 ・歌詞の正確性 × アーティストの背景知識 を組み合わせた最高品質の解析を行うこと
 """
@@ -689,12 +691,13 @@ Daichi Yamamoto/唾奇/呂布カルマ/DOTAMA/晋平太/SEEDA/AK-69/Anarchy
 曲名: \(title)
 アーティスト: \(artist)
 \(profile)
-【実際の歌詞（Geniusより取得）】
+【実際の歌詞（小節ラベル付き）】
 \(lyrics)
 
 上記アーティストのプロフィール・出身・スタイル・シーンでの立ち位置を踏まえたうえで、\
-提供された歌詞を全ライン解析してください。\
-歌詞の各ラインの意味・ライム技法・文化的背景・スラングをあなたの知識で解説してください。
+提供された歌詞を小節ごと・全ライン解析してください。\
+各小節（Verse/Hook/サビ/Aメロ等）の役割・テーマを明示しつつ、\
+各ラインの意味・ライム技法・文化的背景・スラングをあなたの知識で解説してください。
 """
         let messages: [[String: Any]] = [["role": "user", "content": userContent]]
         return try await call(system: system, messages: messages)
